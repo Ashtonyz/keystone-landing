@@ -3,884 +3,124 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Keystone — a multi-tenant Next.js + Supabase SaaS starter kit</title>
-<meta name="description" content="Keystone is a Next.js + Supabase + Vercel starter kit for B2B SaaS apps: auth, organizations, and Row Level Security enforced at the database layer — not just in app code. $49 one-time, by Scaffold.">
-<meta name="keywords" content="Next.js Supabase starter kit, multi-tenant SaaS boilerplate, B2B SaaS starter, Supabase Row Level Security, Next.js SaaS template">
-<meta property="og:title" content="Keystone — a multi-tenant Next.js + Supabase SaaS starter kit">
-<meta property="og:description" content="Auth, organizations, and Row Level Security enforced at the database layer. $49 one-time.">
+<title>Scaffold — production-ready starter kits for developers</title>
+<meta name="description" content="Scaffold builds starter kits for the parts of a product that are tedious to get right and dangerous to get wrong — auth, multi-tenancy, and database-level security. One-time payment, full source.">
+<meta name="keywords" content="developer starter kits, SaaS boilerplate, Next.js starter, Supabase starter kit, multi-tenant SaaS template">
+<meta property="og:title" content="Scaffold — production-ready starter kits for developers">
+<meta property="og:description" content="Starter kits for the parts that are tedious to get right and dangerous to get wrong. One-time payment, full source.">
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#0a0a0c">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --bg:#08080a;
-    --bg-raised:#161619;
-    --bg-inset:#111113;
-    --border:#2e2e35;
-    --border-soft:#1e1e23;
-    --text:#f5f3ee;
-    --text-dim:#a3a3ad;
-    --text-faint:#6b6b74;
-    --accent:#eeb35c;
-    --accent-soft:rgba(238,179,92,0.14);
-    --accent-line:rgba(238,179,92,0.45);
-    --success:#3ddc97;
-    --success-soft:rgba(61,220,151,0.14);
-    --success-line:rgba(61,220,151,0.5);
-    --deny:#f6495a;
-    --deny-soft:rgba(246,73,90,0.14);
-    --deny-line:rgba(246,73,90,0.5);
-    --maxw:1120px;
-  }
-
-  *{ box-sizing:border-box; }
-  html{ scroll-behavior:smooth; }
-
-  body{
-    margin:0;
-    background:
-      radial-gradient(ellipse 900px 560px at 18% -8%, rgba(238,179,92,0.10), transparent 60%),
-      radial-gradient(ellipse 700px 480px at 100% 8%, rgba(61,220,151,0.05), transparent 55%),
-      var(--bg);
-    color:var(--text);
-    font-family:'IBM Plex Sans', -apple-system, sans-serif;
-    font-size:16px;
-    line-height:1.65;
-    -webkit-font-smoothing:antialiased;
-  }
-
-  h1,h2,h3{
-    font-family:'Space Grotesk', sans-serif;
-    font-weight:600;
-    line-height:1.14;
-    margin:0;
-    letter-spacing:-0.01em;
-    color:var(--text);
-  }
-
-  a{ color:inherit; }
-  p{ margin:0; }
-
-  code, .mono{ font-family:'IBM Plex Mono', monospace; }
-
-  .wrap{
-    max-width:var(--maxw);
-    margin:0 auto;
-    padding:0 24px;
-  }
-
-  ::selection{ background:var(--accent-soft); color:var(--accent); }
-
-  /* ---------- reveal-on-scroll ---------- */
-  .reveal{
-    opacity:0;
-    transform:translateY(18px);
-    transition:opacity 0.7s cubic-bezier(.2,.7,.2,1), transform 0.7s cubic-bezier(.2,.7,.2,1);
-  }
-  .reveal.in-view{ opacity:1; transform:translateY(0); }
-  .reveal-stagger.in-view .stagger-item{ opacity:1; transform:translateY(0); }
-  .stagger-item{
-    opacity:0;
-    transform:translateY(14px);
-    transition:opacity 0.6s cubic-bezier(.2,.7,.2,1), transform 0.6s cubic-bezier(.2,.7,.2,1);
-  }
-  @media (prefers-reduced-motion: reduce){
-    .reveal, .stagger-item{ opacity:1 !important; transform:none !important; transition:none !important; }
-  }
-
-  /* ---------- nav ---------- */
-  header.nav{
-    position:sticky; top:0; z-index:30;
-    background:rgba(10,10,12,0.82);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-bottom:1px solid var(--border-soft);
-  }
-  .nav-inner{
-    display:flex; align-items:center; justify-content:space-between;
-    padding:16px 24px;
-    max-width:var(--maxw); margin:0 auto;
-  }
-  .nav-brand{
-    display:flex; align-items:baseline; gap:8px;
-    font-family:'Space Grotesk', sans-serif;
-    font-weight:700;
-    font-size:16px;
-    letter-spacing:-0.01em;
-    text-decoration:none;
-  }
-  .nav-brand .mark{ color:var(--accent); }
-  .nav-brand .sep{ color:var(--text-faint); font-weight:400; }
-  .nav-brand .sub{ color:var(--text-dim); font-weight:400; }
-  .nav-links{
-    display:flex; gap:28px;
-    font-size:14px;
-    color:var(--text-dim);
-  }
-  .nav-links a{ text-decoration:none; transition:color 0.15s ease; }
-  .nav-links a:hover{ color:var(--text); }
-  .nav-right{ display:flex; align-items:center; gap:24px; }
-
-  .btn{
-    font-family:'IBM Plex Sans', sans-serif;
-    font-weight:600;
-    font-size:14px;
-    padding:10px 18px;
-    border-radius:6px;
-    text-decoration:none;
-    display:inline-block;
-    transition:transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
-    white-space:nowrap;
-  }
-  .btn-accent{
-    background:var(--accent);
-    color:#171008;
-  }
-  .btn-accent:hover{ background:#eab26a; transform:translateY(-1px); }
-  .btn-ghost{
-    border:1px solid var(--border);
-    color:var(--text);
-  }
-  .btn-ghost:hover{ border-color:var(--text-dim); }
-  .btn-sm{ padding:8px 14px; font-size:13px; }
-
-  @media (max-width:860px){
-    .nav-links{ display:none; }
-  }
-
-  /* ---------- hero ---------- */
-  .hero{
-    padding:76px 0 40px;
-    position:relative;
-  }
-  .hero::before{
-    content:"";
-    position:absolute;
-    inset:-20px 0 auto 0;
-    height:520px;
-    background-image:
-      linear-gradient(var(--border-soft) 1px, transparent 1px),
-      linear-gradient(90deg, var(--border-soft) 1px, transparent 1px);
-    background-size:56px 56px;
-    mask-image:radial-gradient(ellipse 70% 100% at 30% 0%, black 0%, transparent 75%);
-    -webkit-mask-image:radial-gradient(ellipse 70% 100% at 30% 0%, black 0%, transparent 75%);
-    opacity:0.55;
-    pointer-events:none;
-    z-index:0;
-  }
-  .hero > .wrap{ position:relative; z-index:1; }
-  .hero-eyebrow{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:12.5px;
-    letter-spacing:0.06em;
-    text-transform:uppercase;
-    color:var(--accent);
-    margin-bottom:20px;
-    display:flex; align-items:center; gap:9px;
-  }
-  .hero-eyebrow::before{
-    content:"";
-    width:6px; height:6px; border-radius:50%;
-    background:var(--accent);
-    box-shadow:0 0 0 3px var(--accent-soft);
-  }
-  .hero h1{
-    font-size:clamp(34px, 5.4vw, 56px);
-    max-width:15ch;
-  }
-  .hero-sub{
-    margin-top:22px;
-    max-width:60ch;
-    color:var(--text-dim);
-    font-size:clamp(15.5px, 1.6vw, 18px);
-  }
-  .hero-ctas{
-    margin-top:32px;
-    display:flex;
-    gap:14px;
-    flex-wrap:wrap;
-    align-items:center;
-  }
-  .hero-note{
-    margin-top:16px;
-    font-size:13px;
-    color:var(--text-faint);
-    font-family:'IBM Plex Mono', monospace;
-  }
-
-  /* ---------- rls diagram ---------- */
-  .diagram-shell{
-    margin-top:64px;
-    border:1px solid var(--border);
-    border-radius:12px;
-    background:var(--bg-raised);
-    padding:8px;
-  }
-  .diagram-titlebar{
-    display:flex; align-items:center; gap:8px;
-    padding:10px 12px;
-    border-bottom:1px solid var(--border-soft);
-  }
-  .diagram-titlebar .dot{ width:9px; height:9px; border-radius:50%; background:var(--border); }
-  .diagram-titlebar .label{
-    margin-left:6px;
-    font-family:'IBM Plex Mono', monospace;
-    font-size:12px;
-    color:var(--text-faint);
-  }
-  .rls-diagram{
-    position:relative;
-    height:clamp(300px, 34vw, 380px);
-    padding:28px 4%;
-  }
-  .org-panel{
-    position:absolute;
-    top:50%;
-    transform:translateY(-50%);
-    width:min(30%, 190px);
-    border:1px solid var(--border);
-    border-radius:10px;
-    background:var(--bg-inset);
-    padding:14px 16px;
-  }
-  .org-a{ left:4%; }
-  .org-b{ right:4%; }
-  .org-panel .org-name{
-    font-family:'Space Grotesk', sans-serif;
-    font-weight:600;
-    font-size:14px;
-    margin-bottom:8px;
-  }
-  .org-panel .org-name .tag{
-    display:inline-block;
-    font-family:'IBM Plex Mono', monospace;
-    font-size:10px;
-    font-weight:400;
-    color:var(--text-faint);
-    margin-left:6px;
-  }
-  .org-panel .query-line{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:11px;
-    color:var(--text-dim);
-    background:var(--bg);
-    border:1px solid var(--border-soft);
-    border-radius:5px;
-    padding:8px 9px;
-    line-height:1.5;
-    word-break:break-word;
-  }
-  .org-panel .query-line .cross{ color:var(--deny); }
-
-  .db-core{
-    position:absolute;
-    left:50%; top:50%;
-    transform:translate(-50%,-50%);
-    text-align:center;
-    z-index:2;
-  }
-  .db-core .db-icon{
-    position:relative;
-    width:58px; height:58px;
-    margin:0 auto 8px;
-    border-radius:50%;
-    border:1px solid var(--border);
-    background:var(--bg-inset);
-    display:flex; align-items:center; justify-content:center;
-    font-family:'IBM Plex Mono', monospace;
-    font-size:11px;
-    color:var(--text-dim);
-  }
-  .db-core .db-caption{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:10.5px;
-    color:var(--text-faint);
-    white-space:nowrap;
-  }
-  .db-ring{
-    position:absolute;
-    top:0; left:50%;
-    width:58px; height:58px;
-    transform:translateX(-50%);
-    border-radius:50%;
-    border:1px solid var(--success-line);
-    opacity:0;
-    pointer-events:none;
-  }
-
-  /* faint circuit tracks connecting each org to the boundary */
-  .track{
-    position:absolute;
-    top:38%;
-    height:2px;
-    border-radius:2px;
-    opacity:0.16;
-    z-index:0;
-  }
-  .track-allow{ left:19%; width:31%; background:linear-gradient(90deg, transparent, var(--success) 55%, transparent); }
-  .track-deny{ top:62%; left:63%; width:18%; background:linear-gradient(90deg, transparent, var(--deny) 55%, transparent); }
-
-  .barrier{
-    position:absolute;
-    left:63%; top:50%;
-    width:2px; height:72%;
-    transform:translate(-50%,-50%);
-    background-image:repeating-linear-gradient(to bottom, var(--deny) 0 6px, transparent 6px 12px);
-    opacity:0.38;
-    z-index:1;
-  }
-  .barrier-badge{
-    position:absolute;
-    top:50%; left:50%;
-    transform:translate(-50%,-50%);
-    background:var(--bg-inset);
-    border:1px solid var(--deny-line);
-    color:var(--deny);
-    font-family:'IBM Plex Mono', monospace;
-    font-size:9px;
-    font-weight:600;
-    letter-spacing:0.04em;
-    padding:3px 6px;
-    border-radius:4px;
-    white-space:nowrap;
-  }
-
-  .packet{
-    position:absolute;
-    top:38%;
-    width:9px; height:9px;
-    border-radius:50%;
-    opacity:0;
-    z-index:2;
-  }
-  .packet-allow{ background:var(--success); box-shadow:0 0 6px var(--success), 0 0 14px var(--success-soft); }
-  .packet-deny{ top:62%; background:var(--deny); box-shadow:0 0 6px var(--deny), 0 0 14px var(--deny-soft); }
-
-  .verdict{
-    position:absolute;
-    font-family:'IBM Plex Mono', monospace;
-    font-size:11px;
-    font-weight:600;
-    opacity:0;
-    white-space:nowrap;
-  }
-  .verdict-allow{ top:22%; left:50%; transform:translateX(-50%); color:var(--success); }
-  .verdict-deny{ top:74%; left:50%; transform:translateX(-50%); color:var(--deny); }
-
-  .rls-diagram.animate .track-allow{ animation: track-pulse 5s cubic-bezier(.4,0,.2,1) infinite; }
-  .rls-diagram.animate .track-deny{ animation: track-pulse 5s cubic-bezier(.4,0,.2,1) infinite; }
-  .rls-diagram.animate .barrier{ animation: barrier-flash 5s cubic-bezier(.4,0,.2,1) infinite; }
-  .rls-diagram.animate .packet-allow{ animation: travel-allow 5s cubic-bezier(.4,0,.2,1) infinite; }
-  .rls-diagram.animate .packet-deny{ animation: travel-deny 5s cubic-bezier(.4,0,.2,1) infinite; }
-  .rls-diagram.animate .db-ring{ animation: db-ripple 5s cubic-bezier(.4,0,.2,1) infinite; }
-  .rls-diagram.animate .verdict-allow{ animation: verdict-allow 5s cubic-bezier(.4,0,.2,1) infinite; }
-  .rls-diagram.animate .verdict-deny{ animation: verdict-deny 5s cubic-bezier(.4,0,.2,1) infinite; }
-
-  @keyframes track-pulse{
-    0%, 4%{ opacity:0.14; }
-    12%, 32%{ opacity:0.9; }
-    38%{ opacity:0.14; }
-    60%{ opacity:0.14; }
-    66%, 86%{ opacity:0.9; }
-    94%, 100%{ opacity:0.14; }
-  }
-  @keyframes barrier-flash{
-    0%, 36%{ opacity:0.38; transform:translate(-50%,-50%); }
-    40%{ opacity:1; transform:translate(-53%,-50%); }
-    43%{ opacity:1; transform:translate(-47%,-50%); }
-    46%{ opacity:1; transform:translate(-50%,-50%); }
-    58%{ opacity:0.38; }
-    100%{ opacity:0.38; }
-  }
-  @keyframes travel-allow{
-    0%{ left:19%; opacity:0; transform:scale(0.5); }
-    6%{ opacity:1; transform:scale(1); }
-    34%{ left:46%; opacity:1; transform:scale(1); }
-    40%{ left:50%; opacity:1; transform:scale(0.3); }
-    43%{ opacity:0; transform:scale(0.2); }
-    57%{ opacity:0; left:50%; transform:scale(0.2); }
-    61%{ opacity:1; left:50%; transform:scale(1); }
-    90%{ left:19%; opacity:1; transform:scale(1); }
-    100%{ left:19%; opacity:0; transform:scale(0.5); }
-  }
-  @keyframes travel-deny{
-    0%{ left:81%; opacity:0; transform:scale(0.5); }
-    6%{ opacity:1; transform:scale(1); }
-    34%{ left:66%; opacity:1; }
-    40%{ left:63%; opacity:1; transform:scale(1.3); }
-    43%{ left:67%; opacity:1; transform:scale(0.85); }
-    46%{ left:63%; opacity:1; transform:scale(1.1); }
-    50%{ left:68%; opacity:1; transform:scale(1); }
-    90%{ left:81%; opacity:1; transform:scale(1); }
-    100%{ left:81%; opacity:0; transform:scale(0.5); }
-  }
-  @keyframes verdict-allow{
-    0%, 38%{ opacity:0; }
-    44%{ opacity:1; }
-    56%{ opacity:1; }
-    64%, 100%{ opacity:0; }
-  }
-  @keyframes verdict-deny{
-    0%, 38%{ opacity:0; }
-    44%{ opacity:1; }
-    56%{ opacity:1; }
-    64%, 100%{ opacity:0; }
-  }
-  @keyframes db-ripple{
-    0%, 38%{ transform:translateX(-50%) scale(1); opacity:0; }
-    41%{ transform:translateX(-50%) scale(1); opacity:0.9; }
-    58%{ transform:translateX(-50%) scale(2.4); opacity:0; }
-    100%{ opacity:0; }
-  }
-
-  @media (max-width:640px){
-    .org-panel{ width:min(38%, 150px); padding:10px 11px; }
-    .org-panel .org-name{ font-size:12.5px; }
-    .org-panel .query-line{ font-size:9.5px; padding:6px 7px; }
-    .db-core .db-icon{ width:44px; height:44px; font-size:9px; }
-    .db-ring{ width:44px; height:44px; }
-    .db-core .db-caption{ font-size:9px; }
-    .verdict{ font-size:9.5px; }
-    .barrier-badge{ font-size:8px; padding:2px 4px; }
-  }
-
-  .diagram-legend{
-    display:flex; gap:22px; flex-wrap:wrap;
-    padding:14px 16px 6px;
-    font-family:'IBM Plex Mono', monospace;
-    font-size:11.5px;
-    color:var(--text-dim);
-  }
-  .diagram-legend .sw{ display:inline-flex; align-items:center; gap:7px; }
-  .diagram-legend .dot{ width:8px; height:8px; border-radius:50%; }
-
-  /* ---------- sections ---------- */
-  section{ padding:88px 0; border-top:1px solid var(--border-soft); }
-  .section-head{
-    display:grid;
-    grid-template-columns: 0.8fr 1.2fr;
-    gap:48px;
-    margin-bottom:48px;
-    align-items:start;
-  }
-  .section-eyebrow{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:12px;
-    text-transform:uppercase;
-    letter-spacing:0.07em;
-    color:var(--accent);
-    margin-bottom:10px;
-  }
-  .section-head h2{ font-size:clamp(24px,3vw,32px); }
-  .section-head p{ color:var(--text-dim); max-width:56ch; font-size:15.5px; }
-  @media (max-width:760px){
-    .section-head{ grid-template-columns:1fr; gap:14px; }
-  }
-
-  /* ---------- manifest ---------- */
-  .manifest{ border-top:1px solid var(--border-soft); }
-  .manifest-row{
-    display:grid;
-    grid-template-columns: 52px 1fr;
-    gap:20px;
-    padding:22px 0;
-    border-bottom:1px solid var(--border-soft);
-  }
-  .manifest-row .idx{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:13px;
-    color:var(--accent);
-    padding-top:2px;
-  }
-  .manifest-row .label{
-    font-family:'Space Grotesk', sans-serif;
-    font-weight:600;
-    font-size:16px;
-  }
-  .manifest-row .desc{
-    color:var(--text-dim);
-    font-size:14.5px;
-    margin-top:5px;
-    max-width:60ch;
-  }
-
-  /* ---------- code section ---------- */
-  .code-grid{
-    display:grid;
-    grid-template-columns: 0.85fr 1.15fr;
-    gap:40px;
-    align-items:start;
-  }
-  @media (max-width:900px){
-    .code-grid{ grid-template-columns:1fr; }
-  }
-  .code-note{ color:var(--text-dim); font-size:15px; }
-  .code-note + .code-note{ margin-top:16px; }
-  .code-badge{
-    display:inline-block;
-    font-family:'IBM Plex Mono', monospace;
-    font-size:11px;
-    padding:3px 8px;
-    border-radius:4px;
-    margin-bottom:6px;
-  }
-  .code-badge.bad{ background:var(--deny-soft); color:var(--deny); }
-  .code-badge.good{ background:var(--accent-soft); color:var(--accent); }
-
-  .editor{
-    border:1px solid var(--border);
-    border-radius:10px;
-    overflow:hidden;
-    background:var(--bg-inset);
-  }
-  .editor-bar{
-    display:flex; align-items:center; gap:8px;
-    padding:10px 14px;
-    background:var(--bg-raised);
-    border-bottom:1px solid var(--border-soft);
-  }
-  .editor-bar .dot{ width:9px; height:9px; border-radius:50%; background:var(--border); }
-  .editor-bar .filename{
-    margin-left:8px;
-    font-family:'IBM Plex Mono', monospace;
-    font-size:12px;
-    color:var(--text-faint);
-  }
-  pre.code{
-    margin:0;
-    padding:18px 20px;
-    overflow-x:auto;
-    font-family:'IBM Plex Mono', monospace;
-    font-size:13px;
-    line-height:1.75;
-  }
-  pre.code .ln{ display:inline-block; width:1.6em; color:var(--text-faint); user-select:none; }
-  pre.code .kw{ color:var(--accent); }
-  pre.code .fn{ color:#7fc9d9; }
-  pre.code .str{ color:#9bcf8f; }
-  pre.code .cm{ color:var(--text-faint); font-style:italic; }
-  pre.code .bad-line{ color:var(--deny); }
-
-  /* ---------- stack ---------- */
-  .stack-list{
-    display:grid;
-    grid-template-columns:repeat(3,1fr);
-    border-top:1px solid var(--border-soft);
-    border-left:1px solid var(--border-soft);
-  }
-  .stack-item{
-    padding:28px 26px;
-    border-right:1px solid var(--border-soft);
-    border-bottom:1px solid var(--border-soft);
-  }
-  .stack-item .name{
-    font-family:'Space Grotesk', sans-serif;
-    font-weight:600; font-size:18px;
-  }
-  .stack-item .role{ color:var(--text-dim); font-size:14px; margin-top:8px; line-height:1.55; }
-  @media (max-width:760px){
-    .stack-list{ grid-template-columns:1fr; }
-  }
-
-  /* ---------- pricing ---------- */
-  .pricing-card{
-    border:1px solid var(--border);
-    border-radius:14px;
-    padding:clamp(28px,4vw,48px);
-    background:linear-gradient(160deg, var(--bg-raised), var(--bg-inset));
-    display:grid;
-    grid-template-columns: 1.3fr 1fr;
-    gap:40px;
-  }
-  @media (max-width:800px){
-    .pricing-card{ grid-template-columns:1fr; }
-  }
-  .pricing-card h3{ font-size:19px; margin-bottom:14px; }
-  .included-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px; }
-  .included-list li{
-    display:flex; gap:10px;
-    font-size:14.5px; color:var(--text-dim);
-  }
-  .included-list li::before{ content:"—"; color:var(--accent); flex-shrink:0; }
-
-  .limits-box{
-    margin-top:26px;
-    padding:16px 18px;
-    border:1px solid var(--border);
-    border-left:2px solid var(--accent);
-    border-radius:6px;
-    background:var(--bg-inset);
-  }
-  .limits-box .limits-title{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:11.5px;
-    text-transform:uppercase;
-    letter-spacing:0.05em;
-    color:var(--accent);
-    margin-bottom:10px;
-  }
-  .limits-box ul{ margin:0; padding-left:18px; color:var(--text-dim); font-size:14px; line-height:1.7; }
-
-  .price-panel{
-    border-left:1px solid var(--border-soft);
-    padding-left:40px;
-    display:flex; flex-direction:column; justify-content:center;
-  }
-  @media (max-width:800px){
-    .price-panel{ border-left:none; border-top:1px solid var(--border-soft); padding-left:0; padding-top:28px; }
-  }
-  .price-panel .price{
-    font-family:'Space Grotesk', sans-serif;
-    font-size:52px;
-    font-weight:700;
-    color:var(--text);
-  }
-  .price-panel .price-note{ color:var(--text-dim); font-size:13.5px; margin-top:2px; font-family:'IBM Plex Mono', monospace; }
-  .price-panel .btn{ margin-top:22px; text-align:center; font-size:15px; padding:14px 22px; }
-
-  /* ---------- footer ---------- */
-  footer{
-    padding:44px 0 60px;
-    border-top:1px solid var(--border-soft);
-  }
-  .footer-inner{
-    display:flex; justify-content:space-between; align-items:center;
-    flex-wrap:wrap; gap:16px;
-    color:var(--text-faint); font-size:13.5px;
-  }
-  .footer-brand{ font-family:'Space Grotesk', sans-serif; font-weight:600; color:var(--text-dim); }
-  .footer-links{ display:flex; gap:20px; }
-  .footer-links a{ text-decoration:none; color:var(--text-faint); transition:color 0.15s ease; }
-  .footer-links a:hover{ color:var(--text-dim); }
-
-  :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
-</style>
+<link rel="stylesheet" href="assets/base.css">
+<link rel="stylesheet" href="assets/home.css">
 </head>
 <body>
 
 <header class="nav">
   <div class="nav-inner">
     <a class="nav-brand" href="#top">
-      <span class="mark">◆</span> KEYSTONE <span class="sep">/</span> <span class="sub">by Scaffold</span>
+      <span class="mark">◆</span> SCAFFOLD
     </a>
     <div class="nav-links">
-      <a href="#features">Features</a>
-      <a href="#story">Security</a>
-      <a href="#stack">Stack</a>
-      <a href="#pricing">Pricing</a>
+      <a href="#products">Products</a>
+      <a href="#approach">Approach</a>
     </div>
     <div class="nav-right">
-      <a class="btn btn-accent btn-sm" href="https://ashtonlathams.gumroad.com/l/jemyec" target="_blank" rel="noopener">Get the kit</a>
+      <a class="btn btn-accent btn-sm" href="keystone/">Get Keystone</a>
     </div>
   </div>
 </header>
 
 <section class="hero" id="top">
   <div class="wrap">
-    <div class="hero-eyebrow">Next.js · Supabase · Vercel starter kit</div>
-    <h1 class="reveal">Multi-tenant from the first commit.</h1>
-    <p class="hero-sub reveal">Keystone is the B2B SaaS boilerplate that gets organizations, invites, and row-level security right — enforced by the database itself, so a bug in your app code can't leak one company's data into another's.</p>
+    <div class="hero-eyebrow">Starter kits for developers</div>
+    <h1 class="reveal">Foundations you don't build twice.</h1>
+    <p class="hero-sub reveal">Every product starts with the same few weeks of work — auth, tenancy, permissions, the security boundaries you can't afford to get wrong. Scaffold builds those parts properly, once, so you can start on the part that's actually yours.</p>
     <div class="hero-ctas reveal">
-      <a class="btn btn-accent" href="https://ashtonlathams.gumroad.com/l/jemyec" target="_blank" rel="noopener">Get Keystone — $49</a>
-      <a class="btn btn-ghost" href="#features">See what's inside</a>
+      <a class="btn btn-accent" href="#products">Browse products</a>
+      <a class="btn btn-ghost" href="#approach">How these are built</a>
     </div>
-    <div class="hero-note reveal">One-time payment · full source · no subscription</div>
+    <div class="hero-note reveal">One-time payments · full source · no subscriptions</div>
+  </div>
+</section>
 
-    <div class="diagram-shell reveal" id="diagramShell">
-      <div class="diagram-titlebar">
-        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-        <span class="label">rls_boundary.sql — live query trace</span>
+<section id="products">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div>
+        <div class="section-eyebrow">Catalog</div>
+        <h2>Products</h2>
       </div>
-      <div class="rls-diagram" id="rlsDiagram">
-        <div class="track track-allow"></div>
-        <div class="track track-deny"></div>
-        <div class="barrier">
-          <span class="barrier-badge">RLS</span>
-        </div>
+      <p>Each kit ships as complete, readable source you own outright — small enough to read end to end before you trust it with anything.</p>
+    </div>
 
-        <div class="org-panel org-a">
-          <div class="org-name">Acme Inc <span class="tag">org_id: a1</span></div>
-          <div class="query-line">select * from projects</div>
-        </div>
+    <div class="product-grid reveal-stagger">
 
-        <div class="db-core" id="dbCore">
-          <div class="db-ring"></div>
-          <div class="db-icon">DB</div>
-          <div class="db-caption">Postgres + RLS</div>
+      <a class="product-card stagger-item" href="keystone/">
+        <span class="product-status live">Available now</span>
+        <div class="product-name">Keystone</div>
+        <p class="product-tagline">A multi-tenant B2B SaaS starter kit. Organizations, invites, and row-level security enforced by the database itself — not just in app code.</p>
+        <div class="product-tags">
+          <span>Next.js</span><span>Supabase</span><span>Postgres RLS</span><span>Vercel</span>
         </div>
-
-        <div class="org-panel org-b">
-          <div class="org-name">Globex Corp <span class="tag">org_id: b2</span></div>
-          <div class="query-line">select * from <span class="cross">acme_inc.projects</span></div>
+        <div class="product-meta">
+          <div class="product-price">$49<span class="unit">one-time</span></div>
+          <div class="product-cta">View details →</div>
         </div>
+      </a>
 
-        <div class="packet packet-allow"></div>
-        <div class="packet packet-deny"></div>
-        <div class="verdict verdict-allow">200 OK · 3 rows</div>
-        <div class="verdict verdict-deny">403 · 0 rows</div>
+      <div class="product-card is-soon stagger-item">
+        <span class="product-status soon">In development</span>
+        <div class="product-name">Ledger</div>
+        <p class="product-tagline">Per-organization Stripe billing for Keystone — subscriptions, plan gating, webhooks, and the customer portal, wired into the org model.</p>
+        <div class="product-tags">
+          <span>Stripe</span><span>Next.js</span><span>Supabase</span>
+        </div>
+        <div class="product-meta">
+          <div class="product-price">Coming soon</div>
+        </div>
       </div>
-      <div class="diagram-legend">
-        <span class="sw"><span class="dot" style="background:var(--success)"></span> same-org query, allowed</span>
-        <span class="sw"><span class="dot" style="background:var(--deny)"></span> cross-org query, denied by policy</span>
+
+      <div class="product-card is-soon stagger-item">
+        <span class="product-status soon">In development</span>
+        <div class="product-name">The RLS Cookbook</div>
+        <p class="product-tagline">Battle-tested Postgres row-level security patterns — multi-tenancy, role hierarchies, sharing, audit trails — each with the failure mode that makes it worth having.</p>
+        <div class="product-tags">
+          <span>Postgres</span><span>Supabase</span><span>Reference</span>
+        </div>
+        <div class="product-meta">
+          <div class="product-price">Coming soon</div>
+        </div>
       </div>
+
     </div>
   </div>
 </section>
 
-<section id="features">
+<section id="approach">
   <div class="wrap">
     <div class="section-head reveal">
       <div>
-        <div class="section-eyebrow">Manifest</div>
-        <h2>What's inside</h2>
+        <div class="section-eyebrow">Approach</div>
+        <h2>How these are built</h2>
       </div>
-      <p>Everything a team-based B2B product needs before you can build the part that's actually yours — wired together and tested end to end.</p>
+      <p>A starter kit is a trust purchase — you're inheriting someone else's decisions about the parts hardest to verify. These are the rules that go into every one.</p>
     </div>
 
-    <div class="manifest reveal-stagger">
-      <div class="manifest-row stagger-item">
-        <div class="idx">01</div>
-        <div><div class="label">Email/password + GitHub OAuth</div><div class="desc">Supabase Auth handles sessions and providers; protected routes via middleware.</div></div>
+    <div class="principles reveal-stagger">
+      <div class="principle stagger-item">
+        <div class="p-title">Security at the boundary</div>
+        <div class="p-body">Access rules live in the database, where a mistake in application code can't route around them.</div>
       </div>
-      <div class="manifest-row stagger-item">
-        <div class="idx">02</div>
-        <div><div class="label">Organizations &amp; teams model</div><div class="desc">Users belong to a company, not just an account — the model most starter kits skip entirely.</div></div>
+      <div class="principle stagger-item">
+        <div class="p-title">Small enough to audit</div>
+        <div class="p-body">No framework-on-a-framework. You can read the whole thing in an afternoon and know exactly what you shipped.</div>
       </div>
-      <div class="manifest-row stagger-item">
-        <div class="idx">03</div>
-        <div><div class="label">Row Level Security, scoped per org</div><div class="desc">Enforced at the database layer. Cross-tenant reads fail in Postgres, before the app ever sees them.</div></div>
-      </div>
-      <div class="manifest-row stagger-item">
-        <div class="idx">04</div>
-        <div><div class="label">Invite-a-teammate flow</div><div class="desc">A Postgres trigger joins the new user to the right org automatically the moment they sign up.</div></div>
-      </div>
-      <div class="manifest-row stagger-item">
-        <div class="idx">05</div>
-        <div><div class="label">Team members list, real email lookups</div><div class="desc">The service role key stays server-side and is never exposed to the browser.</div></div>
-      </div>
-      <div class="manifest-row stagger-item">
-        <div class="idx">06</div>
-        <div><div class="label">Example resource: "projects"</div><div class="desc">Full CRUD + RLS pattern wired end to end — the template to copy for every table you add next.</div></div>
-      </div>
-      <div class="manifest-row stagger-item">
-        <div class="idx">07</div>
-        <div><div class="label">One-shot SQL schema</div><div class="desc">A single file provisions tables, policies, functions, and triggers in one run.</div></div>
-      </div>
-      <div class="manifest-row stagger-item">
-        <div class="idx">08</div>
-        <div><div class="label">Setup docs + Vercel deploy config</div><div class="desc">Clone, paste in your Supabase keys, deploy — nothing assumed.</div></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="story">
-  <div class="wrap">
-    <div class="section-head reveal">
-      <div>
-        <div class="section-eyebrow">Field notes</div>
-        <h2>A bug we caught before it shipped</h2>
-      </div>
-      <p>Every multi-tenant starter kit promises isolation. This is the exact policy that would have broken it in ours — found in a pre-release audit, not by a customer.</p>
-    </div>
-
-    <div class="code-grid">
-      <div class="reveal">
-        <span class="code-badge bad">✕ EXPLOITABLE</span>
-        <p class="code-note">The insert policy on <code>organization_members</code> checked <em>who</em> was joining, but never <em>which organization</em>. Any authenticated user could grant themselves membership — including <code>role: 'owner'</code> — in any organization, just by knowing its id.</p>
-        <p class="code-note"><span class="code-badge good" style="margin-top:14px;">✓ FIXED</span><br>The policy is scoped to organizations the caller actually owns — the only legitimate client-side path to create a membership row. Invite acceptance happens separately, server-side, via a trigger that bypasses RLS entirely.</p>
-      </div>
-
-      <div class="editor reveal">
-        <div class="editor-bar">
-          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-          <span class="filename">supabase/schema.sql</span>
-        </div>
-        <pre class="code"><span class="ln"> 1</span><span class="cm bad-line">-- ✕ checks who, not which org — anyone can join anyone's org</span>
-<span class="ln"> 2</span><span class="kw">create policy</span> <span class="str">"Users can insert their own membership"</span>
-<span class="ln"> 3</span><span class="kw">on</span> organization_members <span class="kw">for insert</span>
-<span class="ln"> 4</span><span class="kw">with check</span> (user_id = auth.uid());
-<span class="ln"> 5</span>
-<span class="ln"> 6</span><span class="cm">-- ✓ fixed: scoped to orgs the caller actually owns</span>
-<span class="ln"> 7</span><span class="kw">create policy</span> <span class="str">"Owners can add themselves when creating an org"</span>
-<span class="ln"> 8</span><span class="kw">on</span> organization_members <span class="kw">for insert</span>
-<span class="ln"> 9</span><span class="kw">with check</span> (
-<span class="ln">10</span>  user_id = auth.uid()
-<span class="ln">11</span>  <span class="kw">and</span> role = <span class="str">'owner'</span>
-<span class="ln">12</span>  <span class="kw">and</span> organization_id <span class="kw">in</span> (
-<span class="ln">13</span>    <span class="kw">select</span> id <span class="kw">from</span> organizations <span class="kw">where</span> owner_id = auth.uid()
-<span class="ln">14</span>  )
-<span class="ln">15</span>);</pre>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="stack">
-  <div class="wrap">
-    <div class="section-head reveal">
-      <div>
-        <div class="section-eyebrow">Under the hood</div>
-        <h2>Stack</h2>
-      </div>
-      <p>Nothing exotic — three tools most teams already trust, wired together correctly.</p>
-    </div>
-
-    <div class="stack-list reveal-stagger">
-      <div class="stack-item stagger-item">
-        <div class="name">Next.js</div>
-        <div class="role">App Router, server actions, middleware-based route protection.</div>
-      </div>
-      <div class="stack-item stagger-item">
-        <div class="name">Supabase</div>
-        <div class="role">Auth, Postgres, Row Level Security policies, database triggers.</div>
-      </div>
-      <div class="stack-item stagger-item">
-        <div class="name">Vercel</div>
-        <div class="role">Deploy target, environment variables pre-configured.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="pricing">
-  <div class="wrap">
-    <div class="section-head reveal">
-      <div>
-        <div class="section-eyebrow">Get it</div>
-        <h2>One payment, full source</h2>
-      </div>
-      <p>Everything you need to ship a multi-tenant SaaS this weekend, yours to build on.</p>
-    </div>
-
-    <div class="pricing-card reveal">
-      <div>
-        <h3>What's included</h3>
-        <ul class="included-list">
-          <li>Full Next.js + Supabase source code</li>
-          <li>Organizations/teams model with per-org RLS</li>
-          <li>Invite flow + auto-join trigger</li>
-          <li>Team members list with server-side email lookups</li>
-          <li>Example "projects" CRUD resource</li>
-          <li>One-shot SQL schema file</li>
-          <li>Setup docs + Vercel deploy config</li>
-        </ul>
-
-        <div class="limits-box">
-          <div class="limits-title">Being upfront about v1</div>
-          <ul>
-            <li>Invites don't send an actual email yet — tell the invited person to sign up with that email address.</li>
-            <li>No billing/subscription integration yet — bring your own (Stripe, etc.) when you need it.</li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="price-panel">
-        <div class="price">$49</div>
-        <div class="price-note">one-time payment</div>
-        <a class="btn btn-accent" href="https://ashtonlathams.gumroad.com/l/jemyec" target="_blank" rel="noopener">Get Keystone — $49</a>
+      <div class="principle stagger-item">
+        <div class="p-title">Honest about the edges</div>
+        <div class="p-body">Every product lists what it doesn't do yet, on the pricing page, before you pay.</div>
       </div>
     </div>
   </div>
@@ -888,53 +128,15 @@
 
 <footer>
   <div class="wrap footer-inner">
-    <div class="footer-brand">Scaffold / Keystone</div>
+    <div class="footer-brand">Scaffold</div>
     <div class="footer-links">
-      <a href="https://ashtonlathams.gumroad.com/l/jemyec" target="_blank" rel="noopener">Get the kit</a>
+      <a href="keystone/">Keystone</a>
       <a href="#top">Back to top</a>
     </div>
   </div>
 </footer>
 
-<script>
-(function(){
-  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  var revealEls = document.querySelectorAll('.reveal, .reveal-stagger');
-  if('IntersectionObserver' in window && !reduceMotion){
-    var io = new IntersectionObserver(function(entries){
-      entries.forEach(function(entry){
-        if(entry.isIntersecting){
-          entry.target.classList.add('in-view');
-          io.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
-    revealEls.forEach(function(el){ io.observe(el); });
-  } else {
-    revealEls.forEach(function(el){ el.classList.add('in-view'); });
-  }
-
-  var diagram = document.getElementById('rlsDiagram');
-  if(diagram){
-    if(reduceMotion){
-      diagram.classList.add('static-state');
-    } else if('IntersectionObserver' in window){
-      var dio = new IntersectionObserver(function(entries){
-        entries.forEach(function(entry){
-          if(entry.isIntersecting){
-            diagram.classList.add('animate');
-            dio.unobserve(entry.target);
-          }
-        });
-      }, { threshold: 0.3 });
-      dio.observe(diagram);
-    } else {
-      diagram.classList.add('animate');
-    }
-  }
-})();
-</script>
+<script src="assets/site.js"></script>
 
 </body>
 </html>

@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Keystone — a multi-tenant Next.js + Supabase SaaS starter kit</title>
+<meta name="description" content="Keystone is a Next.js + Supabase + Vercel starter kit for B2B SaaS apps: auth, organizations, and Row Level Security enforced at the database layer — not just in app code. $49 one-time, by Scaffold.">
+<meta name="keywords" content="Next.js Supabase starter kit, multi-tenant SaaS boilerplate, B2B SaaS starter, Supabase Row Level Security, Next.js SaaS template">
+<meta property="og:title" content="Keystone — a multi-tenant Next.js + Supabase SaaS starter kit">
+<meta property="og:description" content="Auth, organizations, and Row Level Security enforced at the database layer. $49 one-time.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0a0a0c">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/base.css">
+<link rel="stylesheet" href="../assets/keystone.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <div class="nav-brand">
+      <a href="#top" style="text-decoration:none;"><span class="mark">◆</span> KEYSTONE</a>
+      <span class="sep">/</span>
+      <a class="sub nav-brand-sub" href="../">by Scaffold</a>
+    </div>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#story">Security</a>
+      <a href="#stack">Stack</a>
+      <a href="#pricing">Pricing</a>
+      <a href="../#products">All products</a>
+    </div>
+    <div class="nav-right">
+      <a class="btn btn-accent btn-sm" href="https://ashtonlathams.gumroad.com/l/jemyec" target="_blank" rel="noopener">Get the kit</a>
+    </div>
+  </div>
+</header>
+
+<section class="hero" id="top">
+  <div class="wrap">
+    <div class="hero-eyebrow">Next.js · Supabase · Vercel starter kit</div>
+    <h1 class="reveal">Multi-tenant from the first commit.</h1>
+    <p class="hero-sub reveal">Keystone is the B2B SaaS boilerplate that gets organizations, invites, and row-level security right — enforced by the database itself, so a bug in your app code can't leak one company's data into another's.</p>
+    <div class="hero-ctas reveal">
+      <a class="btn btn-accent" href="https://ashtonlathams.gumroad.com/l/jemyec" target="_blank" rel="noopener">Get Keystone — $49</a>
+      <a class="btn btn-ghost" href="#features">See what's inside</a>
+    </div>
+    <div class="hero-note reveal">One-time payment · full source · no subscription</div>
+
+    <div class="diagram-shell reveal" id="diagramShell">
+      <div class="diagram-titlebar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="label">rls_boundary.sql — live query trace</span>
+      </div>
+      <div class="rls-diagram" id="rlsDiagram">
+        <div class="track track-allow"></div>
+        <div class="track track-deny"></div>
+        <div class="barrier">
+          <span class="barrier-badge">RLS</span>
+        </div>
+
+        <div class="org-panel org-a">
+          <div class="org-name">Acme Inc <span class="tag">org_id: a1</span></div>
+          <div class="query-line">select * from projects</div>
+        </div>
+
+        <div class="db-core" id="dbCore">
+          <div class="db-ring"></div>
+          <div class="db-icon">DB</div>
+          <div class="db-caption">Postgres + RLS</div>
+        </div>
+
+        <div class="org-panel org-b">
+          <div class="org-name">Globex Corp <span class="tag">org_id: b2</span></div>
+          <div class="query-line">select * from <span class="cross">acme_inc.projects</span></div>
+        </div>
+
+        <div class="packet packet-allow"></div>
+        <div class="packet packet-deny"></div>
+        <div class="verdict verdict-allow">200 OK · 3 rows</div>
+        <div class="verdict verdict-deny">403 · 0 rows</div>
+      </div>
+      <div class="diagram-legend">
+        <span class="sw"><span class="dot" style="background:var(--success)"></span> same-org query, allowed</span>
+        <span class="sw"><span class="dot" style="background:var(--deny)"></span> cross-org query, denied by policy</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div>
+        <div class="section-eyebrow">Manifest</div>
+        <h2>What's inside</h2>
+      </div>
+      <p>Everything a team-based B2B product needs before you can build the part that's actually yours — wired together and tested end to end.</p>
+    </div>
+
+    <div class="manifest reveal-stagger">
+      <div class="manifest-row stagger-item">
+        <div class="idx">01</div>
+        <div><div class="label">Email/password + GitHub OAuth</div><div class="desc">Supabase Auth handles sessions and providers; protected routes via middleware. Password reset included.</div></div>
+      </div>
+      <div class="manifest-row stagger-item">
+        <div class="idx">02</div>
+        <div><div class="label">Organizations &amp; teams model</div><div class="desc">Users belong to a company, not just an account — the model most starter kits skip entirely.</div></div>
+      </div>
+      <div class="manifest-row stagger-item">
+        <div class="idx">03</div>
+        <div><div class="label">Row Level Security, scoped per org</div><div class="desc">Enforced at the database layer. Cross-tenant reads fail in Postgres, before the app ever sees them.</div></div>
+      </div>
+      <div class="manifest-row stagger-item">
+        <div class="idx">04</div>
+        <div><div class="label">Invite-a-teammate flow</div><div class="desc">A Postgres trigger joins the new user to the right org automatically the moment they sign up.</div></div>
+      </div>
+      <div class="manifest-row stagger-item">
+        <div class="idx">05</div>
+        <div><div class="label">Team members list, real email lookups</div><div class="desc">The service role key stays server-side and is never exposed to the browser.</div></div>
+      </div>
+      <div class="manifest-row stagger-item">
+        <div class="idx">06</div>
+        <div><div class="label">Full org lifecycle</div><div class="desc">Belong to multiple orgs and switch between them; remove members, cancel invites, leave or delete an org — with owner-only actions gated in the database.</div></div>
+      </div>
+      <div class="manifest-row stagger-item">
+        <div class="idx">07</div>
+        <div><div class="label">Example resource: "projects"</div><div class="desc">Full CRUD + RLS pattern wired end to end — the template to copy for every table you add next.</div></div>
+      </div>
+      <div class="manifest-row stagger-item">
+        <div class="idx">08</div>
+        <div><div class="label">One-shot SQL schema</div><div class="desc">A single file provisions tables, policies, functions, and triggers in one run.</div></div>
+      </div>
+      <div class="manifest-row stagger-item">
+        <div class="idx">09</div>
+        <div><div class="label">Setup docs + Vercel deploy config</div><div class="desc">Clone, paste in your Supabase keys, deploy — nothing assumed.</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="story">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div>
+        <div class="section-eyebrow">Field notes</div>
+        <h2>A bug we caught before it shipped</h2>
+      </div>
+      <p>Every multi-tenant starter kit promises isolation. This is the exact policy that would have broken it in ours — found in a pre-release audit, not by a customer.</p>
+    </div>
+
+    <div class="code-grid">
+      <div class="reveal">
+        <span class="code-badge bad">✕ EXPLOITABLE</span>
+        <p class="code-note">The insert policy on <code>organization_members</code> checked <em>who</em> was joining, but never <em>which organization</em>. Any authenticated user could grant themselves membership — including <code>role: 'owner'</code> — in any organization, just by knowing its id.</p>
+        <p class="code-note"><span class="code-badge good" style="margin-top:14px;">✓ FIXED</span><br>The policy is scoped to organizations the caller actually owns — the only legitimate client-side path to create a membership row. Invite acceptance happens separately, server-side, via a trigger that bypasses RLS entirely.</p>
+      </div>
+
+      <div class="editor reveal">
+        <div class="editor-bar">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          <span class="filename">supabase/schema.sql</span>
+        </div>
+        <pre class="code"><span class="ln"> 1</span><span class="cm bad-line">-- ✕ checks who, not which org — anyone can join anyone's org</span>
+<span class="ln"> 2</span><span class="kw">create policy</span> <span class="str">"Users can insert their own membership"</span>
+<span class="ln"> 3</span><span class="kw">on</span> organization_members <span class="kw">for insert</span>
+<span class="ln"> 4</span><span class="kw">with check</span> (user_id = auth.uid());
+<span class="ln"> 5</span>
+<span class="ln"> 6</span><span class="cm">-- ✓ fixed: scoped to orgs the caller actually owns</span>
+<span class="ln"> 7</span><span class="kw">create policy</span> <span class="str">"Owners can add themselves when creating an org"</span>
+<span class="ln"> 8</span><span class="kw">on</span> organization_members <span class="kw">for insert</span>
+<span class="ln"> 9</span><span class="kw">with check</span> (
+<span class="ln">10</span>  user_id = auth.uid()
+<span class="ln">11</span>  <span class="kw">and</span> role = <span class="str">'owner'</span>
+<span class="ln">12</span>  <span class="kw">and</span> organization_id <span class="kw">in</span> (
+<span class="ln">13</span>    <span class="kw">select</span> id <span class="kw">from</span> organizations <span class="kw">where</span> owner_id = auth.uid()
+<span class="ln">14</span>  )
+<span class="ln">15</span>);</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="stack">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div>
+        <div class="section-eyebrow">Under the hood</div>
+        <h2>Stack</h2>
+      </div>
+      <p>Nothing exotic — three tools most teams already trust, wired together correctly.</p>
+    </div>
+
+    <div class="stack-list reveal-stagger">
+      <div class="stack-item stagger-item">
+        <div class="name">Next.js</div>
+        <div class="role">App Router, server actions, middleware-based route protection.</div>
+      </div>
+      <div class="stack-item stagger-item">
+        <div class="name">Supabase</div>
+        <div class="role">Auth, Postgres, Row Level Security policies, database triggers.</div>
+      </div>
+      <div class="stack-item stagger-item">
+        <div class="name">Vercel</div>
+        <div class="role">Deploy target, environment variables pre-configured.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="pricing">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div>
+        <div class="section-eyebrow">Get it</div>
+        <h2>One payment, full source</h2>
+      </div>
+      <p>Everything you need to ship a multi-tenant SaaS this weekend, yours to build on.</p>
+    </div>
+
+    <div class="pricing-card reveal">
+      <div>
+        <h3>What's included</h3>
+        <ul class="included-list">
+          <li>Full Next.js + Supabase source code</li>
+          <li>Organizations/teams model with per-org RLS</li>
+          <li>Invite flow + auto-join trigger</li>
+          <li>Team members list with server-side email lookups</li>
+          <li>Org switching, member removal, leave/delete org</li>
+          <li>Example "projects" CRUD resource</li>
+          <li>One-shot SQL schema file</li>
+          <li>Setup docs + Vercel deploy config</li>
+          <li>Unlimited personal &amp; commercial projects</li>
+        </ul>
+
+        <div class="limits-box">
+          <div class="limits-title">Being upfront about v1</div>
+          <ul>
+            <li>Invites don't send an actual email yet — tell the invited person to sign up with that email address.</li>
+            <li>No billing/subscription integration yet — bring your own (Stripe, etc.) when you need it.</li>
+            <li>No automated test suite yet.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="price-panel">
+        <div class="price">$49</div>
+        <div class="price-note">one-time payment</div>
+        <a class="btn btn-accent" href="https://ashtonlathams.gumroad.com/l/jemyec" target="_blank" rel="noopener">Get Keystone — $49</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap footer-inner">
+    <div class="footer-brand">Scaffold / Keystone</div>
+    <div class="footer-links">
+      <a href="../">All products</a>
+      <a href="https://ashtonlathams.gumroad.com/l/jemyec" target="_blank" rel="noopener">Get the kit</a>
+      <a href="#top">Back to top</a>
+    </div>
+  </div>
+</footer>
+
+<script src="../assets/site.js"></script>
+
+</body>
+</html>
