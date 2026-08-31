@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Keystone — a B2B SaaS starter kit by Scaffold</title>
+<meta name="description" content="A Next.js + Supabase starter kit for B2B SaaS. Auth, organizations, and Row Level Security enforced at the database layer, not the app.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F5F4F1;
+    --paper-raised:#EFEDE7;
+    --ink:#171B21;
+    --muted:#5B6270;
+    --line:#D8D5CC;
+    --line-strong:#B9B5AA;
+    --amber:#C98A2C;
+    --teal:#2C8C7C;
+    --red:#B4483D;
+    --maxw: 1080px;
+    --measure: 62ch;
+  }
+
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:17px;
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  h1,h2,h3{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:600;
+    line-height:1.12;
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+
+  a{ color:inherit; }
+
+  code, .mono{
+    font-family:'IBM Plex Mono', monospace;
+  }
+
+  .wrap{
+    max-width:var(--maxw);
+    margin:0 auto;
+    padding:0 32px;
+  }
+
+  /* ---------- nav ---------- */
+  header.nav{
+    position:sticky; top:0; z-index:20;
+    background:rgba(245,244,241,0.92);
+    backdrop-filter: blur(6px);
+    border-bottom:1px solid var(--line);
+  }
+  .nav-inner{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:18px 32px;
+    max-width:var(--maxw); margin:0 auto;
+  }
+  .nav-name{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700;
+    font-size:19px;
+  }
+  .nav-cta{
+    font-size:14px;
+    font-weight:600;
+    padding:9px 16px;
+    background:var(--ink);
+    color:var(--paper);
+    border-radius:3px;
+    text-decoration:none;
+    white-space:nowrap;
+  }
+  .nav-cta:hover{ background:#000; }
+
+  /* ---------- hero ---------- */
+  .hero{
+    padding:88px 0 72px;
+    position:relative;
+    overflow:hidden;
+  }
+  .hero::before{
+    content:"";
+    position:absolute; inset:0;
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size:44px 44px;
+    opacity:0.35;
+    mask-image: radial-gradient(ellipse 90% 70% at 20% 20%, black 0%, transparent 70%);
+    pointer-events:none;
+  }
+  .hero-inner{
+    position:relative;
+    display:grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap:56px;
+    align-items:center;
+  }
+  .hero-label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    color:var(--muted);
+    margin-bottom:18px;
+  }
+  .hero h1{
+    font-size:46px;
+    max-width:11ch;
+  }
+  .hero-sub{
+    margin-top:22px;
+    max-width:46ch;
+    color:var(--muted);
+    font-size:17px;
+  }
+  .hero-ctas{
+    margin-top:32px;
+    display:flex;
+    gap:14px;
+    flex-wrap:wrap;
+  }
+  .btn-primary{
+    font-family:'IBM Plex Sans', sans-serif;
+    font-weight:600;
+    font-size:15px;
+    padding:13px 22px;
+    background:var(--ink);
+    color:var(--paper);
+    border-radius:3px;
+    text-decoration:none;
+    display:inline-block;
+  }
+  .btn-primary:hover{ background:#000; }
+  .btn-secondary{
+    font-weight:600;
+    font-size:15px;
+    padding:13px 22px;
+    border:1px solid var(--line-strong);
+    color:var(--ink);
+    border-radius:3px;
+    text-decoration:none;
+    display:inline-block;
+  }
+  .btn-secondary:hover{ border-color:var(--ink); }
+
+  /* ---------- diagram ---------- */
+  .diagram-card{
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:22px;
+  }
+  .diagram-caption{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    color:var(--muted);
+    margin-top:14px;
+    line-height:1.6;
+  }
+  .diagram-caption b{ color:var(--ink); font-weight:600; }
+
+  #query-line{
+    stroke-dasharray: 140;
+    stroke-dashoffset: 140;
+    animation: draw 1.4s 0.4s cubic-bezier(.6,0,.3,1) forwards;
+  }
+  #deny-mark{
+    opacity:0;
+    animation: pop 0.4s 1.7s ease-out forwards;
+  }
+  @keyframes draw{ to{ stroke-dashoffset:0; } }
+  @keyframes pop{
+    0%{ opacity:0; transform:scale(0.6); }
+    60%{ opacity:1; transform:scale(1.15); }
+    100%{ opacity:1; transform:scale(1); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    #query-line{ animation:none; stroke-dashoffset:0; }
+    #deny-mark{ animation:none; opacity:1; }
+  }
+
+  /* ---------- sections ---------- */
+  section{
+    padding:72px 0;
+    border-top:1px solid var(--line);
+  }
+  .section-head{
+    display:grid;
+    grid-template-columns: 1fr 1.4fr;
+    gap:48px;
+    margin-bottom:40px;
+  }
+  .section-head h2{
+    font-size:28px;
+    max-width:9ch;
+  }
+  .section-head p{
+    color:var(--muted);
+    max-width:var(--measure);
+  }
+  @media (max-width: 760px){
+    .section-head{ grid-template-columns:1fr; gap:14px; }
+  }
+
+  /* ---------- manifest list ---------- */
+  .manifest{
+    border-top:1px solid var(--line);
+  }
+  .manifest-row{
+    display:grid;
+    grid-template-columns: 26px 1fr;
+    gap:16px;
+    padding:16px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .manifest-row .mark{
+    color:var(--teal);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:15px;
+    padding-top:2px;
+  }
+  .manifest-row .label{
+    font-weight:600;
+    font-size:15.5px;
+  }
+  .manifest-row .desc{
+    color:var(--muted);
+    font-size:15px;
+    margin-top:3px;
+    max-width:56ch;
+  }
+
+  /* ---------- bug story ---------- */
+  .story-steps{
+    display:flex;
+    flex-direction:column;
+    gap:28px;
+  }
+  .story-step{
+    display:grid;
+    grid-template-columns:34px 1fr;
+    gap:18px;
+  }
+  .story-step .num{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:14px;
+    color:var(--amber);
+    padding-top:3px;
+  }
+  .story-step h3{ font-size:17px; margin-bottom:6px; }
+  .story-step p{ color:var(--muted); font-size:15.5px; max-width:58ch; }
+
+  pre.code{
+    background:var(--ink);
+    color:#E7E4DA;
+    border-radius:6px;
+    padding:20px 22px;
+    overflow-x:auto;
+    font-size:13.5px;
+    line-height:1.65;
+    margin:18px 0 0;
+  }
+  pre.code .kw{ color:#E8A33D; }
+  pre.code .fn{ color:#7FD1B9; }
+  pre.code .cm{ color:#8A8F98; }
+
+  /* ---------- stack ---------- */
+  .stack-list{
+    display:flex;
+    gap:0;
+    flex-wrap:wrap;
+    border-top:1px solid var(--line);
+    border-left:1px solid var(--line);
+  }
+  .stack-item{
+    flex:1 1 220px;
+    padding:22px 24px;
+    border-right:1px solid var(--line);
+    border-bottom:1px solid var(--line);
+  }
+  .stack-item .name{ font-weight:600; font-size:16px; }
+  .stack-item .role{ color:var(--muted); font-size:14px; margin-top:4px; }
+
+  /* ---------- pricing ---------- */
+  .pricing-card{
+    border:1px solid var(--line-strong);
+    border-radius:6px;
+    padding:40px;
+    background:var(--paper-raised);
+    display:grid;
+    grid-template-columns: 1fr auto;
+    gap:32px;
+    align-items:start;
+  }
+  .price{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:40px;
+    font-weight:700;
+  }
+  .price-note{ color:var(--muted); font-size:14px; margin-top:2px; }
+  .pricing-limits{
+    margin-top:20px;
+    padding-top:20px;
+    border-top:1px solid var(--line);
+    font-size:14px;
+    color:var(--muted);
+  }
+  .pricing-limits b{ color:var(--ink); }
+  @media (max-width: 640px){
+    .pricing-card{ grid-template-columns:1fr; }
+  }
+
+  footer{
+    padding:40px 0 60px;
+    border-top:1px solid var(--line);
+    color:var(--muted);
+    font-size:14px;
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:12px;
+  }
+
+  @media (max-width: 900px){
+    .hero-inner{ grid-template-columns:1fr; }
+    .hero h1{ font-size:36px; max-width:none; }
+  }
+  @media (max-width: 600px){
+    .wrap, .nav-inner{ padding-left:20px; padding-right:20px; }
+    .stack-item{ flex:1 1 100%; }
+  }
+
+  :focus-visible{
+    outline:2px solid var(--amber);
+    outline-offset:2px;
+  }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+  <div class="nav-name">scaffold <span style="color:var(--muted); font-weight:400;">/ keystone</span></div>
+    <a class="nav-cta" href="https://ashtonlathams.gumroad.com/l/jemyec" target="_blank" rel="noopener">Get the kit</a>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap hero-inner">
+    <div>
+      <div class="hero-label">next.js · supabase · vercel</div>
+      <h1>The piece every B2B app needs, already in place.</h1>
+      <p class="hero-sub">A B2B SaaS starter kit built around the one thing most templates skip: keeping one company's data completely invisible to another's — enforced by the database itself, not application code you have to remember to write correctly every time.</p>
+      <div class="hero-ctas">
+        <a class="btn-primary" href="https://ashtonlathams.gumroad.com/l/jemyec" target="_blank" rel="noopener">Get the kit — $49</a>
+        <a class="btn-secondary" href="#story">Read how the RLS bug got fixed</a>
+      </div>
+    </div>
+
+    <div class="diagram-card">
+      <svg viewBox="0 0 400 260" width="100%" role="img" aria-label="Diagram showing Acme Inc's own query succeeding, and Acme Inc's attempt to read Globex Inc's data being blocked by a row level security policy">
+        <!-- outer db -->
+        <rect x="6" y="6" width="388" height="248" rx="8" fill="none" stroke="#B9B5AA" stroke-width="1"/>
+        <text x="20" y="28" font-family="IBM Plex Mono, monospace" font-size="11" fill="#5B6270">postgres</text>
+
+        <!-- acme panel -->
+        <rect x="20" y="42" width="160" height="90" rx="5" fill="none" stroke="#2C8C7C" stroke-width="1.4"/>
+        <text x="32" y="62" font-family="IBM Plex Mono, monospace" font-size="12" fill="#171B21" font-weight="600">acme_inc</text>
+        <text x="32" y="82" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#5B6270">members: 4</text>
+        <text x="32" y="98" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#5B6270">projects: 3</text>
+        <text x="32" y="118" font-family="IBM Plex Mono, monospace" font-size="10" fill="#2C8C7C">✓ query allowed</text>
+
+        <!-- globex panel -->
+        <rect x="220" y="42" width="160" height="90" rx="5" fill="none" stroke="#B4483D" stroke-width="1.4" stroke-dasharray="3 3"/>
+        <text x="232" y="62" font-family="IBM Plex Mono, monospace" font-size="12" fill="#171B21" font-weight="600">globex_inc</text>
+        <text x="232" y="82" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#5B6270">members: 9</text>
+        <text x="232" y="98" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#5B6270">projects: 12</text>
+        <text x="232" y="118" id="deny-mark" font-family="IBM Plex Mono, monospace" font-size="10" fill="#B4483D">✕ blocked by policy</text>
+
+        <!-- origin: acme user session -->
+        <rect x="150" y="176" width="100" height="34" rx="4" fill="#171B21"/>
+        <text x="200" y="197" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#F5F4F1">acme session</text>
+
+        <!-- line to own org (dotted, static) -->
+        <path d="M170,176 C150,150 130,132 120,132" fill="none" stroke="#2C8C7C" stroke-width="1.2" opacity="0.55"/>
+
+        <!-- animated denied query line -->
+        <path id="query-line" d="M230,176 C260,150 290,132 300,132" fill="none" stroke="#B4483D" stroke-width="1.6"/>
+      </svg>
+      <div class="diagram-caption">Same login session, same query shape. <b>Acme's own org</b> resolves normally — <b>Globex's rows</b> are rejected by Postgres before they ever reach the app.</div>
+    </div>
+  </div>
+</section>
+
+<section id="whats-inside">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>What's inside</h2>
+      <p>Everything a team-based B2B product needs before you can build the part that's actually yours — already wired together and tested end to end.</p>
+    </div>
+
+    <div class="manifest">
+      <div class="manifest-row">
+        <div class="mark">✓</div>
+        <div>
+          <div class="label">Email + GitHub OAuth login</div>
+          <div class="desc">Password confirmation, show/hide toggle, protected routes via middleware.</div>
+        </div>
+      </div>
+      <div class="manifest-row">
+        <div class="mark">✓</div>
+        <div>
+          <div class="label">Organizations & team membership</div>
+          <div class="desc">Users belong to a company, not just an account — the model almost every free template skips.</div>
+        </div>
+      </div>
+      <div class="manifest-row">
+        <div class="mark">✓</div>
+        <div>
+          <div class="label">Row Level Security, scoped per org</div>
+          <div class="desc">Enforced at the database layer. One company's data cannot leak into another's, even if the app code has a bug.</div>
+        </div>
+      </div>
+      <div class="manifest-row">
+        <div class="mark">✓</div>
+        <div>
+          <div class="label">Invite teammates, auto-join on signup</div>
+          <div class="desc">A database trigger checks pending invites the moment a new user signs up and joins them automatically.</div>
+        </div>
+      </div>
+      <div class="manifest-row">
+        <div class="mark">✓</div>
+        <div>
+          <div class="label">Team member list with real email lookups</div>
+          <div class="desc">Done the secure way — the service role key stays server-side, never reaches the browser.</div>
+        </div>
+      </div>
+      <div class="manifest-row">
+        <div class="mark">✓</div>
+        <div>
+          <div class="label">One example resource, fully wired</div>
+          <div class="desc">A "projects" table showing the complete create/read/delete + RLS pattern — rename it for whatever you're building.</div>
+        </div>
+      </div>
+      <div class="manifest-row">
+        <div class="mark">✓</div>
+        <div>
+          <div class="label">Setup docs + one-shot SQL schema</div>
+          <div class="desc">Clone, run one script, paste in your Supabase keys, deploy.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="story">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>The bug I had to fix first</h2>
+      <p>RLS is worth the setup pain, but it has sharp edges. Here's the one that actually happened while building this.</p>
+    </div>
+
+    <div class="story-steps">
+      <div class="story-step">
+        <div class="num">01</div>
+        <div>
+          <h3>A policy that queried itself</h3>
+          <p>The membership policy checked "does this user belong to this org" by querying the membership table — the same table the policy was protecting. Every read triggered the policy again, which triggered another read.</p>
+        </div>
+      </div>
+      <div class="story-step">
+        <div class="num">02</div>
+        <div>
+          <h3>Postgres said so, plainly</h3>
+          <p><code>infinite recursion detected in policy for relation "organization_members"</code> — an easy mistake to make, because the rule reads as completely correct in English.</p>
+        </div>
+      </div>
+      <div class="story-step">
+        <div class="num">03</div>
+        <div>
+          <h3>A function that steps outside the check</h3>
+          <p>A <code>security definer</code> function reads membership without re-triggering the policy asking the question — breaking the loop while keeping the rule intact.</p>
+        </div>
+      </div>
+    </div>
+
+    <pre class="code"><span class="cm">-- runs with elevated privileges, bypassing RLS internally</span>
+<span class="kw">create or replace function</span> <span class="fn">get_user_org_ids</span>()
+<span class="kw">returns setof</span> uuid
+<span class="kw">language</span> sql
+<span class="kw">security definer</span>
+<span class="kw">set</span> search_path = public
+<span class="kw">as</span> $$
+  <span class="kw">select</span> organization_id <span class="kw">from</span> organization_members <span class="kw">where</span> user_id = auth.uid()
+$$;</pre>
+  </div>
+</section>
+
+<section id="stack">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>Stack</h2>
+      <p>Nothing exotic — three tools most teams already trust, wired together correctly.</p>
+    </div>
+
+    <div class="stack-list">
+      <div class="stack-item">
+        <div class="name">Next.js</div>
+        <div class="role">App Router, server actions, middleware-based route protection</div>
+      </div>
+      <div class="stack-item">
+        <div class="name">Supabase</div>
+        <div class="role">Auth, Postgres, Row Level Security, database triggers</div>
+      </div>
+      <div class="stack-item">
+        <div class="name">Vercel</div>
+        <div class="role">Deploy target, environment config included</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="pricing">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>Get it</h2>
+      <p>One payment, the full source, yours to build on.</p>
+    </div>
+
+    <div class="pricing-card">
+      <div>
+        <div style="font-weight:600; font-size:17px; margin-bottom:6px;">Full source, zip download</div>
+        <p style="color:var(--muted); font-size:15px; max-width:50ch; margin:0;">Auth, organizations, RLS, invites, team list, example resource, setup docs, and a one-shot SQL schema file.</p>
+
+        <div class="pricing-limits">
+          <b>Being upfront about v1:</b> invites don't send an email yet (you tell the person to sign up manually), and there's no billing integration yet. Both are planned.
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <div class="price">$49</div>
+        <div class="price-note">one-time</div>
+        <a class="btn-primary" style="margin-top:18px; display:inline-block;" href="https://ashtonlathams.gumroad.com/l/jemyec" target="_blank" rel="noopener">Get the kit</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap" style="display:flex; justify-content:space-between; width:100%; flex-wrap:wrap; gap:12px;">
+        <div>scaffold / keystone</div>
+    <div>Built solo, in public.</div>
+  </div>
+</footer>
+
+</body>
+</html>
