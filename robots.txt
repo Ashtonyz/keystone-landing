@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://keystone-landing-cyy.pages.dev/sitemap.xml
