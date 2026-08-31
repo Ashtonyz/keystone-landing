@@ -3,24 +3,32 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Keystone — a B2B SaaS starter kit by Scaffold</title>
-<meta name="description" content="A Next.js + Supabase starter kit for B2B SaaS. Auth, organizations, and Row Level Security enforced at the database layer, not the app.">
+<title>Keystone — a multi-tenant Next.js + Supabase SaaS starter kit</title>
+<meta name="description" content="Keystone is a Next.js + Supabase + Vercel starter kit for B2B SaaS apps: auth, organizations, and Row Level Security enforced at the database layer — not just in app code. $49 one-time, by Scaffold.">
+<meta name="keywords" content="Next.js Supabase starter kit, multi-tenant SaaS boilerplate, B2B SaaS starter, Supabase Row Level Security, Next.js SaaS template">
+<meta property="og:title" content="Keystone — a multi-tenant Next.js + Supabase SaaS starter kit">
+<meta property="og:description" content="Auth, organizations, and Row Level Security enforced at the database layer. $49 one-time.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0a0a0c">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --paper:#F5F4F1;
-    --paper-raised:#EFEDE7;
-    --ink:#171B21;
-    --muted:#5B6270;
-    --line:#D8D5CC;
-    --line-strong:#B9B5AA;
-    --amber:#C98A2C;
-    --teal:#2C8C7C;
-    --red:#B4483D;
-    --maxw: 1080px;
-    --measure: 62ch;
+    --bg:#0a0a0c;
+    --bg-raised:#111114;
+    --bg-inset:#0d0d10;
+    --border:#232328;
+    --border-soft:#1a1a1e;
+    --text:#e9e7e2;
+    --text-dim:#8d8d95;
+    --text-faint:#5c5c64;
+    --accent:#e0a458;
+    --accent-soft:rgba(224,164,88,0.12);
+    --accent-line:rgba(224,164,88,0.35);
+    --deny:#e0685f;
+    --deny-soft:rgba(224,104,95,0.12);
+    --maxw:1120px;
   }
 
   *{ box-sizing:border-box; }
@@ -28,10 +36,10 @@
 
   body{
     margin:0;
-    background:var(--paper);
-    color:var(--ink);
-    font-family:'IBM Plex Sans', sans-serif;
-    font-size:17px;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'IBM Plex Sans', -apple-system, sans-serif;
+    font-size:16px;
     line-height:1.65;
     -webkit-font-smoothing:antialiased;
   }
@@ -39,427 +47,635 @@
   h1,h2,h3{
     font-family:'Space Grotesk', sans-serif;
     font-weight:600;
-    line-height:1.12;
+    line-height:1.14;
     margin:0;
     letter-spacing:-0.01em;
+    color:var(--text);
   }
 
   a{ color:inherit; }
+  p{ margin:0; }
 
-  code, .mono{
-    font-family:'IBM Plex Mono', monospace;
-  }
+  code, .mono{ font-family:'IBM Plex Mono', monospace; }
 
   .wrap{
     max-width:var(--maxw);
     margin:0 auto;
-    padding:0 32px;
+    padding:0 24px;
+  }
+
+  ::selection{ background:var(--accent-soft); color:var(--accent); }
+
+  /* ---------- reveal-on-scroll ---------- */
+  .reveal{
+    opacity:0;
+    transform:translateY(18px);
+    transition:opacity 0.7s cubic-bezier(.2,.7,.2,1), transform 0.7s cubic-bezier(.2,.7,.2,1);
+  }
+  .reveal.in-view{ opacity:1; transform:translateY(0); }
+  .reveal-stagger.in-view .stagger-item{ opacity:1; transform:translateY(0); }
+  .stagger-item{
+    opacity:0;
+    transform:translateY(14px);
+    transition:opacity 0.6s cubic-bezier(.2,.7,.2,1), transform 0.6s cubic-bezier(.2,.7,.2,1);
+  }
+  @media (prefers-reduced-motion: reduce){
+    .reveal, .stagger-item{ opacity:1 !important; transform:none !important; transition:none !important; }
   }
 
   /* ---------- nav ---------- */
   header.nav{
-    position:sticky; top:0; z-index:20;
-    background:rgba(245,244,241,0.92);
-    backdrop-filter: blur(6px);
-    border-bottom:1px solid var(--line);
+    position:sticky; top:0; z-index:30;
+    background:rgba(10,10,12,0.82);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom:1px solid var(--border-soft);
   }
   .nav-inner{
     display:flex; align-items:center; justify-content:space-between;
-    padding:18px 32px;
+    padding:16px 24px;
     max-width:var(--maxw); margin:0 auto;
   }
-  .nav-name{
+  .nav-brand{
+    display:flex; align-items:baseline; gap:8px;
     font-family:'Space Grotesk', sans-serif;
     font-weight:700;
-    font-size:19px;
-  }
-  .nav-cta{
-    font-size:14px;
-    font-weight:600;
-    padding:9px 16px;
-    background:var(--ink);
-    color:var(--paper);
-    border-radius:3px;
+    font-size:16px;
+    letter-spacing:-0.01em;
     text-decoration:none;
+  }
+  .nav-brand .mark{ color:var(--accent); }
+  .nav-brand .sep{ color:var(--text-faint); font-weight:400; }
+  .nav-brand .sub{ color:var(--text-dim); font-weight:400; }
+  .nav-links{
+    display:flex; gap:28px;
+    font-size:14px;
+    color:var(--text-dim);
+  }
+  .nav-links a{ text-decoration:none; transition:color 0.15s ease; }
+  .nav-links a:hover{ color:var(--text); }
+  .nav-right{ display:flex; align-items:center; gap:24px; }
+
+  .btn{
+    font-family:'IBM Plex Sans', sans-serif;
+    font-weight:600;
+    font-size:14px;
+    padding:10px 18px;
+    border-radius:6px;
+    text-decoration:none;
+    display:inline-block;
+    transition:transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
     white-space:nowrap;
   }
-  .nav-cta:hover{ background:#000; }
+  .btn-accent{
+    background:var(--accent);
+    color:#171008;
+  }
+  .btn-accent:hover{ background:#eab26a; transform:translateY(-1px); }
+  .btn-ghost{
+    border:1px solid var(--border);
+    color:var(--text);
+  }
+  .btn-ghost:hover{ border-color:var(--text-dim); }
+  .btn-sm{ padding:8px 14px; font-size:13px; }
+
+  @media (max-width:860px){
+    .nav-links{ display:none; }
+  }
 
   /* ---------- hero ---------- */
   .hero{
-    padding:88px 0 72px;
+    padding:76px 0 40px;
     position:relative;
-    overflow:hidden;
   }
-  .hero::before{
-    content:"";
-    position:absolute; inset:0;
-    background-image:
-      linear-gradient(var(--line) 1px, transparent 1px),
-      linear-gradient(90deg, var(--line) 1px, transparent 1px);
-    background-size:44px 44px;
-    opacity:0.35;
-    mask-image: radial-gradient(ellipse 90% 70% at 20% 20%, black 0%, transparent 70%);
-    pointer-events:none;
-  }
-  .hero-inner{
-    position:relative;
-    display:grid;
-    grid-template-columns: 1.1fr 0.9fr;
-    gap:56px;
-    align-items:center;
-  }
-  .hero-label{
+  .hero-eyebrow{
     font-family:'IBM Plex Mono', monospace;
-    font-size:13px;
-    color:var(--muted);
-    margin-bottom:18px;
+    font-size:12.5px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--accent);
+    margin-bottom:20px;
+    display:flex; align-items:center; gap:9px;
+  }
+  .hero-eyebrow::before{
+    content:"";
+    width:6px; height:6px; border-radius:50%;
+    background:var(--accent);
+    box-shadow:0 0 0 3px var(--accent-soft);
   }
   .hero h1{
-    font-size:46px;
-    max-width:11ch;
+    font-size:clamp(34px, 5.4vw, 56px);
+    max-width:15ch;
   }
   .hero-sub{
     margin-top:22px;
-    max-width:46ch;
-    color:var(--muted);
-    font-size:17px;
+    max-width:60ch;
+    color:var(--text-dim);
+    font-size:clamp(15.5px, 1.6vw, 18px);
   }
   .hero-ctas{
     margin-top:32px;
     display:flex;
     gap:14px;
     flex-wrap:wrap;
+    align-items:center;
   }
-  .btn-primary{
-    font-family:'IBM Plex Sans', sans-serif;
-    font-weight:600;
-    font-size:15px;
-    padding:13px 22px;
-    background:var(--ink);
-    color:var(--paper);
-    border-radius:3px;
-    text-decoration:none;
-    display:inline-block;
-  }
-  .btn-primary:hover{ background:#000; }
-  .btn-secondary{
-    font-weight:600;
-    font-size:15px;
-    padding:13px 22px;
-    border:1px solid var(--line-strong);
-    color:var(--ink);
-    border-radius:3px;
-    text-decoration:none;
-    display:inline-block;
-  }
-  .btn-secondary:hover{ border-color:var(--ink); }
-
-  /* ---------- diagram ---------- */
-  .diagram-card{
-    background:var(--paper-raised);
-    border:1px solid var(--line);
-    border-radius:6px;
-    padding:22px;
-  }
-  .diagram-caption{
+  .hero-note{
+    margin-top:16px;
+    font-size:13px;
+    color:var(--text-faint);
     font-family:'IBM Plex Mono', monospace;
-    font-size:12.5px;
-    color:var(--muted);
-    margin-top:14px;
-    line-height:1.6;
   }
-  .diagram-caption b{ color:var(--ink); font-weight:600; }
 
-  #query-line{
-    stroke-dasharray: 140;
-    stroke-dashoffset: 140;
-    animation: draw 1.4s 0.4s cubic-bezier(.6,0,.3,1) forwards;
+  /* ---------- rls diagram ---------- */
+  .diagram-shell{
+    margin-top:64px;
+    border:1px solid var(--border);
+    border-radius:12px;
+    background:var(--bg-raised);
+    padding:8px;
   }
-  #deny-mark{
+  .diagram-titlebar{
+    display:flex; align-items:center; gap:8px;
+    padding:10px 12px;
+    border-bottom:1px solid var(--border-soft);
+  }
+  .diagram-titlebar .dot{ width:9px; height:9px; border-radius:50%; background:var(--border); }
+  .diagram-titlebar .label{
+    margin-left:6px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--text-faint);
+  }
+  .rls-diagram{
+    position:relative;
+    height:clamp(300px, 34vw, 380px);
+    padding:28px 4%;
+  }
+  .org-panel{
+    position:absolute;
+    top:50%;
+    transform:translateY(-50%);
+    width:min(30%, 190px);
+    border:1px solid var(--border);
+    border-radius:10px;
+    background:var(--bg-inset);
+    padding:14px 16px;
+  }
+  .org-a{ left:4%; }
+  .org-b{ right:4%; }
+  .org-panel .org-name{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:600;
+    font-size:14px;
+    margin-bottom:8px;
+  }
+  .org-panel .org-name .tag{
+    display:inline-block;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px;
+    font-weight:400;
+    color:var(--text-faint);
+    margin-left:6px;
+  }
+  .org-panel .query-line{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--text-dim);
+    background:var(--bg);
+    border:1px solid var(--border-soft);
+    border-radius:5px;
+    padding:8px 9px;
+    line-height:1.5;
+    word-break:break-word;
+  }
+  .org-panel .query-line .cross{ color:var(--deny); }
+
+  .db-core{
+    position:absolute;
+    left:50%; top:50%;
+    transform:translate(-50%,-50%);
+    text-align:center;
+    z-index:2;
+  }
+  .db-core .db-icon{
+    width:58px; height:58px;
+    margin:0 auto 8px;
+    border-radius:50%;
+    border:1px solid var(--border);
+    background:var(--bg-inset);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--text-dim);
+    transition:box-shadow 0.3s ease, border-color 0.3s ease;
+  }
+  .db-core .db-caption{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    color:var(--text-faint);
+    white-space:nowrap;
+  }
+  .db-core.pulse-allow .db-icon{
+    border-color:var(--accent-line);
+    box-shadow:0 0 0 6px var(--accent-soft);
+  }
+  .db-core.pulse-deny .db-icon{
+    border-color:var(--deny);
+    box-shadow:0 0 0 6px var(--deny-soft);
+  }
+
+  .packet{
+    position:absolute;
+    top:38%;
+    width:9px; height:9px;
+    border-radius:50%;
     opacity:0;
-    animation: pop 0.4s 1.7s ease-out forwards;
   }
-  @keyframes draw{ to{ stroke-dashoffset:0; } }
-  @keyframes pop{
-    0%{ opacity:0; transform:scale(0.6); }
-    60%{ opacity:1; transform:scale(1.15); }
-    100%{ opacity:1; transform:scale(1); }
+  .packet-allow{ background:var(--accent); box-shadow:0 0 8px var(--accent); }
+  .packet-deny{ top:62%; background:var(--deny); box-shadow:0 0 8px var(--deny); }
+
+  .verdict{
+    position:absolute;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    font-weight:600;
+    opacity:0;
+    white-space:nowrap;
   }
-  @media (prefers-reduced-motion: reduce){
-    #query-line{ animation:none; stroke-dashoffset:0; }
-    #deny-mark{ animation:none; opacity:1; }
+  .verdict-allow{ top:22%; left:50%; transform:translateX(-50%); color:var(--accent); }
+  .verdict-deny{ top:74%; left:50%; transform:translateX(-50%); color:var(--deny); }
+
+  .rls-diagram.animate .packet-allow{ animation: travel-allow 5s ease-in-out infinite; }
+  .rls-diagram.animate .packet-deny{ animation: travel-deny 5s ease-in-out infinite; }
+  .rls-diagram.animate .db-core{ animation: db-glow 5s ease-in-out infinite; }
+  .rls-diagram.animate .verdict-allow{ animation: verdict-allow 5s ease-in-out infinite; }
+  .rls-diagram.animate .verdict-deny{ animation: verdict-deny 5s ease-in-out infinite; }
+
+  @keyframes travel-allow{
+    0%{ left:18%; opacity:0; }
+    8%{ opacity:1; }
+    38%{ left:47%; opacity:1; }
+    50%{ left:50%; opacity:1; }
+    62%{ left:47%; opacity:1; }
+    92%{ left:18%; opacity:1; }
+    100%{ left:18%; opacity:0; }
   }
+  @keyframes travel-deny{
+    0%{ right:18%; left:auto; opacity:0; }
+    8%{ opacity:1; }
+    38%{ left:56%; right:auto; opacity:1; }
+    46%{ left:54%; opacity:1; }
+    54%{ left:56%; opacity:1; }
+    92%{ right:18%; left:auto; opacity:1; }
+    100%{ right:18%; left:auto; opacity:0; }
+  }
+  @keyframes verdict-allow{
+    0%, 42%{ opacity:0; }
+    48%{ opacity:1; }
+    58%{ opacity:1; }
+    66%, 100%{ opacity:0; }
+  }
+  @keyframes verdict-deny{
+    0%, 42%{ opacity:0; }
+    48%{ opacity:1; }
+    58%{ opacity:1; }
+    66%, 100%{ opacity:0; }
+  }
+
+  @keyframes db-glow{
+    0%, 42%{ box-shadow:none; }
+    48%, 58%{ box-shadow:0 0 0 8px var(--accent-soft), 0 0 0 0 var(--deny-soft) inset; }
+    66%, 100%{ box-shadow:none; }
+  }
+
+  @media (max-width:640px){
+    .org-panel{ width:min(38%, 150px); padding:10px 11px; }
+    .org-panel .org-name{ font-size:12.5px; }
+    .org-panel .query-line{ font-size:9.5px; padding:6px 7px; }
+    .db-core .db-icon{ width:44px; height:44px; font-size:9px; }
+    .db-core .db-caption{ font-size:9px; }
+    .verdict{ font-size:9.5px; }
+  }
+
+  .diagram-legend{
+    display:flex; gap:22px; flex-wrap:wrap;
+    padding:14px 16px 6px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11.5px;
+    color:var(--text-dim);
+  }
+  .diagram-legend .sw{ display:inline-flex; align-items:center; gap:7px; }
+  .diagram-legend .dot{ width:8px; height:8px; border-radius:50%; }
 
   /* ---------- sections ---------- */
-  section{
-    padding:72px 0;
-    border-top:1px solid var(--line);
-  }
+  section{ padding:88px 0; border-top:1px solid var(--border-soft); }
   .section-head{
     display:grid;
-    grid-template-columns: 1fr 1.4fr;
+    grid-template-columns: 0.8fr 1.2fr;
     gap:48px;
-    margin-bottom:40px;
+    margin-bottom:48px;
+    align-items:start;
   }
-  .section-head h2{
-    font-size:28px;
-    max-width:9ch;
+  .section-eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:0.07em;
+    color:var(--accent);
+    margin-bottom:10px;
   }
-  .section-head p{
-    color:var(--muted);
-    max-width:var(--measure);
-  }
-  @media (max-width: 760px){
+  .section-head h2{ font-size:clamp(24px,3vw,32px); }
+  .section-head p{ color:var(--text-dim); max-width:56ch; font-size:15.5px; }
+  @media (max-width:760px){
     .section-head{ grid-template-columns:1fr; gap:14px; }
   }
 
-  /* ---------- manifest list ---------- */
-  .manifest{
-    border-top:1px solid var(--line);
-  }
+  /* ---------- manifest ---------- */
+  .manifest{ border-top:1px solid var(--border-soft); }
   .manifest-row{
     display:grid;
-    grid-template-columns: 26px 1fr;
-    gap:16px;
-    padding:16px 0;
-    border-bottom:1px solid var(--line);
+    grid-template-columns: 52px 1fr;
+    gap:20px;
+    padding:22px 0;
+    border-bottom:1px solid var(--border-soft);
   }
-  .manifest-row .mark{
-    color:var(--teal);
+  .manifest-row .idx{
     font-family:'IBM Plex Mono', monospace;
-    font-size:15px;
+    font-size:13px;
+    color:var(--accent);
     padding-top:2px;
   }
   .manifest-row .label{
+    font-family:'Space Grotesk', sans-serif;
     font-weight:600;
-    font-size:15.5px;
+    font-size:16px;
   }
   .manifest-row .desc{
-    color:var(--muted);
-    font-size:15px;
-    margin-top:3px;
-    max-width:56ch;
+    color:var(--text-dim);
+    font-size:14.5px;
+    margin-top:5px;
+    max-width:60ch;
   }
 
-  /* ---------- bug story ---------- */
-  .story-steps{
-    display:flex;
-    flex-direction:column;
-    gap:28px;
-  }
-  .story-step{
+  /* ---------- code section ---------- */
+  .code-grid{
     display:grid;
-    grid-template-columns:34px 1fr;
-    gap:18px;
+    grid-template-columns: 0.85fr 1.15fr;
+    gap:40px;
+    align-items:start;
   }
-  .story-step .num{
+  @media (max-width:900px){
+    .code-grid{ grid-template-columns:1fr; }
+  }
+  .code-note{ color:var(--text-dim); font-size:15px; }
+  .code-note + .code-note{ margin-top:16px; }
+  .code-badge{
+    display:inline-block;
     font-family:'IBM Plex Mono', monospace;
-    font-size:14px;
-    color:var(--amber);
-    padding-top:3px;
+    font-size:11px;
+    padding:3px 8px;
+    border-radius:4px;
+    margin-bottom:6px;
   }
-  .story-step h3{ font-size:17px; margin-bottom:6px; }
-  .story-step p{ color:var(--muted); font-size:15.5px; max-width:58ch; }
+  .code-badge.bad{ background:var(--deny-soft); color:var(--deny); }
+  .code-badge.good{ background:var(--accent-soft); color:var(--accent); }
 
-  pre.code{
-    background:var(--ink);
-    color:#E7E4DA;
-    border-radius:6px;
-    padding:20px 22px;
-    overflow-x:auto;
-    font-size:13.5px;
-    line-height:1.65;
-    margin:18px 0 0;
+  .editor{
+    border:1px solid var(--border);
+    border-radius:10px;
+    overflow:hidden;
+    background:var(--bg-inset);
   }
-  pre.code .kw{ color:#E8A33D; }
-  pre.code .fn{ color:#7FD1B9; }
-  pre.code .cm{ color:#8A8F98; }
+  .editor-bar{
+    display:flex; align-items:center; gap:8px;
+    padding:10px 14px;
+    background:var(--bg-raised);
+    border-bottom:1px solid var(--border-soft);
+  }
+  .editor-bar .dot{ width:9px; height:9px; border-radius:50%; background:var(--border); }
+  .editor-bar .filename{
+    margin-left:8px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--text-faint);
+  }
+  pre.code{
+    margin:0;
+    padding:18px 20px;
+    overflow-x:auto;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    line-height:1.75;
+  }
+  pre.code .ln{ display:inline-block; width:1.6em; color:var(--text-faint); user-select:none; }
+  pre.code .kw{ color:var(--accent); }
+  pre.code .fn{ color:#7fc9d9; }
+  pre.code .str{ color:#9bcf8f; }
+  pre.code .cm{ color:var(--text-faint); font-style:italic; }
+  pre.code .bad-line{ color:var(--deny); }
 
   /* ---------- stack ---------- */
   .stack-list{
-    display:flex;
-    gap:0;
-    flex-wrap:wrap;
-    border-top:1px solid var(--line);
-    border-left:1px solid var(--line);
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    border-top:1px solid var(--border-soft);
+    border-left:1px solid var(--border-soft);
   }
   .stack-item{
-    flex:1 1 220px;
-    padding:22px 24px;
-    border-right:1px solid var(--line);
-    border-bottom:1px solid var(--line);
+    padding:28px 26px;
+    border-right:1px solid var(--border-soft);
+    border-bottom:1px solid var(--border-soft);
   }
-  .stack-item .name{ font-weight:600; font-size:16px; }
-  .stack-item .role{ color:var(--muted); font-size:14px; margin-top:4px; }
+  .stack-item .name{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:600; font-size:18px;
+  }
+  .stack-item .role{ color:var(--text-dim); font-size:14px; margin-top:8px; line-height:1.55; }
+  @media (max-width:760px){
+    .stack-list{ grid-template-columns:1fr; }
+  }
 
   /* ---------- pricing ---------- */
   .pricing-card{
-    border:1px solid var(--line-strong);
-    border-radius:6px;
-    padding:40px;
-    background:var(--paper-raised);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:clamp(28px,4vw,48px);
+    background:linear-gradient(160deg, var(--bg-raised), var(--bg-inset));
     display:grid;
-    grid-template-columns: 1fr auto;
-    gap:32px;
-    align-items:start;
+    grid-template-columns: 1.3fr 1fr;
+    gap:40px;
   }
-  .price{
-    font-family:'Space Grotesk', sans-serif;
-    font-size:40px;
-    font-weight:700;
-  }
-  .price-note{ color:var(--muted); font-size:14px; margin-top:2px; }
-  .pricing-limits{
-    margin-top:20px;
-    padding-top:20px;
-    border-top:1px solid var(--line);
-    font-size:14px;
-    color:var(--muted);
-  }
-  .pricing-limits b{ color:var(--ink); }
-  @media (max-width: 640px){
+  @media (max-width:800px){
     .pricing-card{ grid-template-columns:1fr; }
   }
+  .pricing-card h3{ font-size:19px; margin-bottom:14px; }
+  .included-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px; }
+  .included-list li{
+    display:flex; gap:10px;
+    font-size:14.5px; color:var(--text-dim);
+  }
+  .included-list li::before{ content:"—"; color:var(--accent); flex-shrink:0; }
 
+  .limits-box{
+    margin-top:26px;
+    padding:16px 18px;
+    border:1px solid var(--border);
+    border-left:2px solid var(--accent);
+    border-radius:6px;
+    background:var(--bg-inset);
+  }
+  .limits-box .limits-title{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11.5px;
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    color:var(--accent);
+    margin-bottom:10px;
+  }
+  .limits-box ul{ margin:0; padding-left:18px; color:var(--text-dim); font-size:14px; line-height:1.7; }
+
+  .price-panel{
+    border-left:1px solid var(--border-soft);
+    padding-left:40px;
+    display:flex; flex-direction:column; justify-content:center;
+  }
+  @media (max-width:800px){
+    .price-panel{ border-left:none; border-top:1px solid var(--border-soft); padding-left:0; padding-top:28px; }
+  }
+  .price-panel .price{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:52px;
+    font-weight:700;
+    color:var(--text);
+  }
+  .price-panel .price-note{ color:var(--text-dim); font-size:13.5px; margin-top:2px; font-family:'IBM Plex Mono', monospace; }
+  .price-panel .btn{ margin-top:22px; text-align:center; font-size:15px; padding:14px 22px; }
+
+  /* ---------- footer ---------- */
   footer{
-    padding:40px 0 60px;
-    border-top:1px solid var(--line);
-    color:var(--muted);
-    font-size:14px;
-    display:flex;
-    justify-content:space-between;
-    flex-wrap:wrap;
-    gap:12px;
+    padding:44px 0 60px;
+    border-top:1px solid var(--border-soft);
   }
+  .footer-inner{
+    display:flex; justify-content:space-between; align-items:center;
+    flex-wrap:wrap; gap:16px;
+    color:var(--text-faint); font-size:13.5px;
+  }
+  .footer-brand{ font-family:'Space Grotesk', sans-serif; font-weight:600; color:var(--text-dim); }
+  .footer-links{ display:flex; gap:20px; }
+  .footer-links a{ text-decoration:none; color:var(--text-faint); transition:color 0.15s ease; }
+  .footer-links a:hover{ color:var(--text-dim); }
 
-  @media (max-width: 900px){
-    .hero-inner{ grid-template-columns:1fr; }
-    .hero h1{ font-size:36px; max-width:none; }
-  }
-  @media (max-width: 600px){
-    .wrap, .nav-inner{ padding-left:20px; padding-right:20px; }
-    .stack-item{ flex:1 1 100%; }
-  }
-
-  :focus-visible{
-    outline:2px solid var(--amber);
-    outline-offset:2px;
-  }
+  :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
 </style>
 </head>
 <body>
 
 <header class="nav">
   <div class="nav-inner">
-  <div class="nav-name">scaffold <span style="color:var(--muted); font-weight:400;">/ keystone</span></div>
-    <a class="nav-cta" href="https://ashtonlathams.gumroad.com/l/jemyec" target="_blank" rel="noopener">Get the kit</a>
+    <a class="nav-brand" href="#top">
+      <span class="mark">◆</span> KEYSTONE <span class="sep">/</span> <span class="sub">by Scaffold</span>
+    </a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#story">Security</a>
+      <a href="#stack">Stack</a>
+      <a href="#pricing">Pricing</a>
+    </div>
+    <div class="nav-right">
+      <a class="btn btn-accent btn-sm" href="https://ashtonlathams.gumroad.com/l/jemyec" target="_blank" rel="noopener">Get the kit</a>
+    </div>
   </div>
 </header>
 
-<section class="hero">
-  <div class="wrap hero-inner">
-    <div>
-      <div class="hero-label">next.js · supabase · vercel</div>
-      <h1>The piece every B2B app needs, already in place.</h1>
-      <p class="hero-sub">A B2B SaaS starter kit built around the one thing most templates skip: keeping one company's data completely invisible to another's — enforced by the database itself, not application code you have to remember to write correctly every time.</p>
-      <div class="hero-ctas">
-        <a class="btn-primary" href="https://ashtonlathams.gumroad.com/l/jemyec" target="_blank" rel="noopener">Get the kit — $49</a>
-        <a class="btn-secondary" href="#story">Read how the RLS bug got fixed</a>
-      </div>
+<section class="hero" id="top">
+  <div class="wrap">
+    <div class="hero-eyebrow">Next.js · Supabase · Vercel starter kit</div>
+    <h1 class="reveal">Multi-tenant from the first commit.</h1>
+    <p class="hero-sub reveal">Keystone is the B2B SaaS boilerplate that gets organizations, invites, and row-level security right — enforced by the database itself, so a bug in your app code can't leak one company's data into another's.</p>
+    <div class="hero-ctas reveal">
+      <a class="btn btn-accent" href="https://ashtonlathams.gumroad.com/l/jemyec" target="_blank" rel="noopener">Get Keystone — $49</a>
+      <a class="btn btn-ghost" href="#features">See what's inside</a>
     </div>
+    <div class="hero-note reveal">One-time payment · full source · no subscription</div>
 
-    <div class="diagram-card">
-      <svg viewBox="0 0 400 260" width="100%" role="img" aria-label="Diagram showing Acme Inc's own query succeeding, and Acme Inc's attempt to read Globex Inc's data being blocked by a row level security policy">
-        <!-- outer db -->
-        <rect x="6" y="6" width="388" height="248" rx="8" fill="none" stroke="#B9B5AA" stroke-width="1"/>
-        <text x="20" y="28" font-family="IBM Plex Mono, monospace" font-size="11" fill="#5B6270">postgres</text>
+    <div class="diagram-shell reveal" id="diagramShell">
+      <div class="diagram-titlebar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="label">rls_boundary.sql — live query trace</span>
+      </div>
+      <div class="rls-diagram" id="rlsDiagram">
+        <div class="org-panel org-a">
+          <div class="org-name">Acme Inc <span class="tag">org_id: a1</span></div>
+          <div class="query-line">select * from projects</div>
+        </div>
 
-        <!-- acme panel -->
-        <rect x="20" y="42" width="160" height="90" rx="5" fill="none" stroke="#2C8C7C" stroke-width="1.4"/>
-        <text x="32" y="62" font-family="IBM Plex Mono, monospace" font-size="12" fill="#171B21" font-weight="600">acme_inc</text>
-        <text x="32" y="82" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#5B6270">members: 4</text>
-        <text x="32" y="98" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#5B6270">projects: 3</text>
-        <text x="32" y="118" font-family="IBM Plex Mono, monospace" font-size="10" fill="#2C8C7C">✓ query allowed</text>
+        <div class="db-core" id="dbCore">
+          <div class="db-icon">DB</div>
+          <div class="db-caption">Postgres + RLS</div>
+        </div>
 
-        <!-- globex panel -->
-        <rect x="220" y="42" width="160" height="90" rx="5" fill="none" stroke="#B4483D" stroke-width="1.4" stroke-dasharray="3 3"/>
-        <text x="232" y="62" font-family="IBM Plex Mono, monospace" font-size="12" fill="#171B21" font-weight="600">globex_inc</text>
-        <text x="232" y="82" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#5B6270">members: 9</text>
-        <text x="232" y="98" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#5B6270">projects: 12</text>
-        <text x="232" y="118" id="deny-mark" font-family="IBM Plex Mono, monospace" font-size="10" fill="#B4483D">✕ blocked by policy</text>
+        <div class="org-panel org-b">
+          <div class="org-name">Globex Corp <span class="tag">org_id: b2</span></div>
+          <div class="query-line">select * from <span class="cross">acme_inc.projects</span></div>
+        </div>
 
-        <!-- origin: acme user session -->
-        <rect x="150" y="176" width="100" height="34" rx="4" fill="#171B21"/>
-        <text x="200" y="197" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#F5F4F1">acme session</text>
-
-        <!-- line to own org (dotted, static) -->
-        <path d="M170,176 C150,150 130,132 120,132" fill="none" stroke="#2C8C7C" stroke-width="1.2" opacity="0.55"/>
-
-        <!-- animated denied query line -->
-        <path id="query-line" d="M230,176 C260,150 290,132 300,132" fill="none" stroke="#B4483D" stroke-width="1.6"/>
-      </svg>
-      <div class="diagram-caption">Same login session, same query shape. <b>Acme's own org</b> resolves normally — <b>Globex's rows</b> are rejected by Postgres before they ever reach the app.</div>
+        <div class="packet packet-allow"></div>
+        <div class="packet packet-deny"></div>
+        <div class="verdict verdict-allow">200 OK · 3 rows</div>
+        <div class="verdict verdict-deny">403 · 0 rows</div>
+      </div>
+      <div class="diagram-legend">
+        <span class="sw"><span class="dot" style="background:var(--accent)"></span> same-org query, allowed</span>
+        <span class="sw"><span class="dot" style="background:var(--deny)"></span> cross-org query, denied by policy</span>
+      </div>
     </div>
   </div>
 </section>
 
-<section id="whats-inside">
+<section id="features">
   <div class="wrap">
-    <div class="section-head">
-      <h2>What's inside</h2>
-      <p>Everything a team-based B2B product needs before you can build the part that's actually yours — already wired together and tested end to end.</p>
+    <div class="section-head reveal">
+      <div>
+        <div class="section-eyebrow">Manifest</div>
+        <h2>What's inside</h2>
+      </div>
+      <p>Everything a team-based B2B product needs before you can build the part that's actually yours — wired together and tested end to end.</p>
     </div>
 
-    <div class="manifest">
-      <div class="manifest-row">
-        <div class="mark">✓</div>
-        <div>
-          <div class="label">Email + GitHub OAuth login</div>
-          <div class="desc">Password confirmation, show/hide toggle, protected routes via middleware.</div>
-        </div>
+    <div class="manifest reveal-stagger">
+      <div class="manifest-row stagger-item">
+        <div class="idx">01</div>
+        <div><div class="label">Email/password + GitHub OAuth</div><div class="desc">Supabase Auth handles sessions and providers; protected routes via middleware.</div></div>
       </div>
-      <div class="manifest-row">
-        <div class="mark">✓</div>
-        <div>
-          <div class="label">Organizations & team membership</div>
-          <div class="desc">Users belong to a company, not just an account — the model almost every free template skips.</div>
-        </div>
+      <div class="manifest-row stagger-item">
+        <div class="idx">02</div>
+        <div><div class="label">Organizations &amp; teams model</div><div class="desc">Users belong to a company, not just an account — the model most starter kits skip entirely.</div></div>
       </div>
-      <div class="manifest-row">
-        <div class="mark">✓</div>
-        <div>
-          <div class="label">Row Level Security, scoped per org</div>
-          <div class="desc">Enforced at the database layer. One company's data cannot leak into another's, even if the app code has a bug.</div>
-        </div>
+      <div class="manifest-row stagger-item">
+        <div class="idx">03</div>
+        <div><div class="label">Row Level Security, scoped per org</div><div class="desc">Enforced at the database layer. Cross-tenant reads fail in Postgres, before the app ever sees them.</div></div>
       </div>
-      <div class="manifest-row">
-        <div class="mark">✓</div>
-        <div>
-          <div class="label">Invite teammates, auto-join on signup</div>
-          <div class="desc">A database trigger checks pending invites the moment a new user signs up and joins them automatically.</div>
-        </div>
+      <div class="manifest-row stagger-item">
+        <div class="idx">04</div>
+        <div><div class="label">Invite-a-teammate flow</div><div class="desc">A Postgres trigger joins the new user to the right org automatically the moment they sign up.</div></div>
       </div>
-      <div class="manifest-row">
-        <div class="mark">✓</div>
-        <div>
-          <div class="label">Team member list with real email lookups</div>
-          <div class="desc">Done the secure way — the service role key stays server-side, never reaches the browser.</div>
-        </div>
+      <div class="manifest-row stagger-item">
+        <div class="idx">05</div>
+        <div><div class="label">Team members list, real email lookups</div><div class="desc">The service role key stays server-side and is never exposed to the browser.</div></div>
       </div>
-      <div class="manifest-row">
-        <div class="mark">✓</div>
-        <div>
-          <div class="label">One example resource, fully wired</div>
-          <div class="desc">A "projects" table showing the complete create/read/delete + RLS pattern — rename it for whatever you're building.</div>
-        </div>
+      <div class="manifest-row stagger-item">
+        <div class="idx">06</div>
+        <div><div class="label">Example resource: "projects"</div><div class="desc">Full CRUD + RLS pattern wired end to end — the template to copy for every table you add next.</div></div>
       </div>
-      <div class="manifest-row">
-        <div class="mark">✓</div>
-        <div>
-          <div class="label">Setup docs + one-shot SQL schema</div>
-          <div class="desc">Clone, run one script, paste in your Supabase keys, deploy.</div>
-        </div>
+      <div class="manifest-row stagger-item">
+        <div class="idx">07</div>
+        <div><div class="label">One-shot SQL schema</div><div class="desc">A single file provisions tables, policies, functions, and triggers in one run.</div></div>
+      </div>
+      <div class="manifest-row stagger-item">
+        <div class="idx">08</div>
+        <div><div class="label">Setup docs + Vercel deploy config</div><div class="desc">Clone, paste in your Supabase keys, deploy — nothing assumed.</div></div>
       </div>
     </div>
   </div>
@@ -467,66 +683,73 @@
 
 <section id="story">
   <div class="wrap">
-    <div class="section-head">
-      <h2>The bug I had to fix first</h2>
-      <p>RLS is worth the setup pain, but it has sharp edges. Here's the one that actually happened while building this.</p>
+    <div class="section-head reveal">
+      <div>
+        <div class="section-eyebrow">Field notes</div>
+        <h2>A bug we already hit for you</h2>
+      </div>
+      <p>RLS is worth the setup pain, but it has sharp edges. This is the recursion bug that showed up while building the org-membership policy — and the fix.</p>
     </div>
 
-    <div class="story-steps">
-      <div class="story-step">
-        <div class="num">01</div>
-        <div>
-          <h3>A policy that queried itself</h3>
-          <p>The membership policy checked "does this user belong to this org" by querying the membership table — the same table the policy was protecting. Every read triggered the policy again, which triggered another read.</p>
-        </div>
+    <div class="code-grid">
+      <div class="reveal">
+        <span class="code-badge bad">✕ RECURSES</span>
+        <p class="code-note">The membership policy checked "does this user belong to this org" by querying <code>org_members</code> — the same table the policy protects. Every read re-triggers the policy, which triggers another read, forever.</p>
+        <p class="code-note"><span class="code-badge good" style="margin-top:14px;">✓ FIXED</span><br>A <code>security definer</code> function reads membership with elevated privileges, bypassing RLS internally — breaking the loop while keeping the rule intact.</p>
       </div>
-      <div class="story-step">
-        <div class="num">02</div>
-        <div>
-          <h3>Postgres said so, plainly</h3>
-          <p><code>infinite recursion detected in policy for relation "organization_members"</code> — an easy mistake to make, because the rule reads as completely correct in English.</p>
+
+      <div class="editor reveal">
+        <div class="editor-bar">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          <span class="filename">0002_rls_policies.sql</span>
         </div>
-      </div>
-      <div class="story-step">
-        <div class="num">03</div>
-        <div>
-          <h3>A function that steps outside the check</h3>
-          <p>A <code>security definer</code> function reads membership without re-triggering the policy asking the question — breaking the loop while keeping the rule intact.</p>
-        </div>
+        <pre class="code"><span class="ln"> 1</span><span class="cm bad-line">-- ✕ this recurses: the policy queries the table it protects</span>
+<span class="ln"> 2</span><span class="kw">create policy</span> <span class="str">"members can view their org"</span>
+<span class="ln"> 3</span><span class="kw">on</span> org_members <span class="kw">for select</span>
+<span class="ln"> 4</span><span class="kw">using</span> (
+<span class="ln"> 5</span>  org_id <span class="kw">in</span> (
+<span class="ln"> 6</span>    <span class="kw">select</span> org_id <span class="kw">from</span> org_members <span class="kw">where</span> user_id = auth.uid()
+<span class="ln"> 7</span>  )
+<span class="ln"> 8</span>);
+<span class="ln"> 9</span>
+<span class="ln">10</span><span class="cm">-- ✓ fixed: a security definer function breaks the recursion</span>
+<span class="ln">11</span><span class="kw">create function</span> <span class="fn">auth.user_org_ids</span>()
+<span class="ln">12</span><span class="kw">returns setof</span> uuid
+<span class="ln">13</span><span class="kw">language</span> sql <span class="kw">security definer stable</span>
+<span class="ln">14</span><span class="kw">as</span> $$
+<span class="ln">15</span>  <span class="kw">select</span> org_id <span class="kw">from</span> org_members <span class="kw">where</span> user_id = auth.uid()
+<span class="ln">16</span>$$;
+<span class="ln">17</span>
+<span class="ln">18</span><span class="kw">create policy</span> <span class="str">"members can view their org"</span>
+<span class="ln">19</span><span class="kw">on</span> org_members <span class="kw">for select</span>
+<span class="ln">20</span><span class="kw">using</span> ( org_id <span class="kw">in</span> (<span class="kw">select</span> <span class="fn">auth.user_org_ids</span>()) );</pre>
       </div>
     </div>
-
-    <pre class="code"><span class="cm">-- runs with elevated privileges, bypassing RLS internally</span>
-<span class="kw">create or replace function</span> <span class="fn">get_user_org_ids</span>()
-<span class="kw">returns setof</span> uuid
-<span class="kw">language</span> sql
-<span class="kw">security definer</span>
-<span class="kw">set</span> search_path = public
-<span class="kw">as</span> $$
-  <span class="kw">select</span> organization_id <span class="kw">from</span> organization_members <span class="kw">where</span> user_id = auth.uid()
-$$;</pre>
   </div>
 </section>
 
 <section id="stack">
   <div class="wrap">
-    <div class="section-head">
-      <h2>Stack</h2>
+    <div class="section-head reveal">
+      <div>
+        <div class="section-eyebrow">Under the hood</div>
+        <h2>Stack</h2>
+      </div>
       <p>Nothing exotic — three tools most teams already trust, wired together correctly.</p>
     </div>
 
-    <div class="stack-list">
-      <div class="stack-item">
+    <div class="stack-list reveal-stagger">
+      <div class="stack-item stagger-item">
         <div class="name">Next.js</div>
-        <div class="role">App Router, server actions, middleware-based route protection</div>
+        <div class="role">App Router, server actions, middleware-based route protection.</div>
       </div>
-      <div class="stack-item">
+      <div class="stack-item stagger-item">
         <div class="name">Supabase</div>
-        <div class="role">Auth, Postgres, Row Level Security, database triggers</div>
+        <div class="role">Auth, Postgres, Row Level Security policies, database triggers.</div>
       </div>
-      <div class="stack-item">
+      <div class="stack-item stagger-item">
         <div class="name">Vercel</div>
-        <div class="role">Deploy target, environment config included</div>
+        <div class="role">Deploy target, environment variables pre-configured.</div>
       </div>
     </div>
   </div>
@@ -534,35 +757,94 @@ $$;</pre>
 
 <section id="pricing">
   <div class="wrap">
-    <div class="section-head">
-      <h2>Get it</h2>
-      <p>One payment, the full source, yours to build on.</p>
+    <div class="section-head reveal">
+      <div>
+        <div class="section-eyebrow">Get it</div>
+        <h2>One payment, full source</h2>
+      </div>
+      <p>Everything you need to ship a multi-tenant SaaS this weekend, yours to build on.</p>
     </div>
 
-    <div class="pricing-card">
+    <div class="pricing-card reveal">
       <div>
-        <div style="font-weight:600; font-size:17px; margin-bottom:6px;">Full source, zip download</div>
-        <p style="color:var(--muted); font-size:15px; max-width:50ch; margin:0;">Auth, organizations, RLS, invites, team list, example resource, setup docs, and a one-shot SQL schema file.</p>
+        <h3>What's included</h3>
+        <ul class="included-list">
+          <li>Full Next.js + Supabase source code</li>
+          <li>Organizations/teams model with per-org RLS</li>
+          <li>Invite flow + auto-join trigger</li>
+          <li>Team members list with server-side email lookups</li>
+          <li>Example "projects" CRUD resource</li>
+          <li>One-shot SQL schema file</li>
+          <li>Setup docs + Vercel deploy config</li>
+        </ul>
 
-        <div class="pricing-limits">
-          <b>Being upfront about v1:</b> invites don't send an email yet (you tell the person to sign up manually), and there's no billing integration yet. Both are planned.
+        <div class="limits-box">
+          <div class="limits-title">Being upfront about v1</div>
+          <ul>
+            <li>Invites don't send an actual email yet — tell the invited person to sign up with that email address.</li>
+            <li>No billing/subscription integration yet — bring your own (Stripe, etc.) when you need it.</li>
+          </ul>
         </div>
       </div>
-      <div style="text-align:right;">
+
+      <div class="price-panel">
         <div class="price">$49</div>
-        <div class="price-note">one-time</div>
-        <a class="btn-primary" style="margin-top:18px; display:inline-block;" href="https://ashtonlathams.gumroad.com/l/jemyec" target="_blank" rel="noopener">Get the kit</a>
+        <div class="price-note">one-time payment</div>
+        <a class="btn btn-accent" href="https://ashtonlathams.gumroad.com/l/jemyec" target="_blank" rel="noopener">Get Keystone — $49</a>
       </div>
     </div>
   </div>
 </section>
 
 <footer>
-  <div class="wrap" style="display:flex; justify-content:space-between; width:100%; flex-wrap:wrap; gap:12px;">
-        <div>scaffold / keystone</div>
-    <div>Built solo, in public.</div>
+  <div class="wrap footer-inner">
+    <div class="footer-brand">Scaffold / Keystone</div>
+    <div class="footer-links">
+      <a href="https://ashtonlathams.gumroad.com/l/jemyec" target="_blank" rel="noopener">Get the kit</a>
+      <a href="#top">Back to top</a>
+    </div>
   </div>
 </footer>
+
+<script>
+(function(){
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var revealEls = document.querySelectorAll('.reveal, .reveal-stagger');
+  if('IntersectionObserver' in window && !reduceMotion){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        if(entry.isIntersecting){
+          entry.target.classList.add('in-view');
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+    revealEls.forEach(function(el){ io.observe(el); });
+  } else {
+    revealEls.forEach(function(el){ el.classList.add('in-view'); });
+  }
+
+  var diagram = document.getElementById('rlsDiagram');
+  if(diagram){
+    if(reduceMotion){
+      diagram.classList.add('static-state');
+    } else if('IntersectionObserver' in window){
+      var dio = new IntersectionObserver(function(entries){
+        entries.forEach(function(entry){
+          if(entry.isIntersecting){
+            diagram.classList.add('animate');
+            dio.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.3 });
+      dio.observe(diagram);
+    } else {
+      diagram.classList.add('animate');
+    }
+  }
+})();
+</script>
 
 </body>
 </html>
