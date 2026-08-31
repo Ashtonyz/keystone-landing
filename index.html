@@ -15,19 +15,23 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#0a0a0c;
-    --bg-raised:#111114;
-    --bg-inset:#0d0d10;
-    --border:#232328;
-    --border-soft:#1a1a1e;
-    --text:#e9e7e2;
-    --text-dim:#8d8d95;
-    --text-faint:#5c5c64;
-    --accent:#e0a458;
-    --accent-soft:rgba(224,164,88,0.12);
-    --accent-line:rgba(224,164,88,0.35);
-    --deny:#e0685f;
-    --deny-soft:rgba(224,104,95,0.12);
+    --bg:#08080a;
+    --bg-raised:#161619;
+    --bg-inset:#111113;
+    --border:#2e2e35;
+    --border-soft:#1e1e23;
+    --text:#f5f3ee;
+    --text-dim:#a3a3ad;
+    --text-faint:#6b6b74;
+    --accent:#eeb35c;
+    --accent-soft:rgba(238,179,92,0.14);
+    --accent-line:rgba(238,179,92,0.45);
+    --success:#3ddc97;
+    --success-soft:rgba(61,220,151,0.14);
+    --success-line:rgba(61,220,151,0.5);
+    --deny:#f6495a;
+    --deny-soft:rgba(246,73,90,0.14);
+    --deny-line:rgba(246,73,90,0.5);
     --maxw:1120px;
   }
 
@@ -36,7 +40,10 @@
 
   body{
     margin:0;
-    background:var(--bg);
+    background:
+      radial-gradient(ellipse 900px 560px at 18% -8%, rgba(238,179,92,0.10), transparent 60%),
+      radial-gradient(ellipse 700px 480px at 100% 8%, rgba(61,220,151,0.05), transparent 55%),
+      var(--bg);
     color:var(--text);
     font-family:'IBM Plex Sans', -apple-system, sans-serif;
     font-size:16px;
@@ -148,6 +155,22 @@
     padding:76px 0 40px;
     position:relative;
   }
+  .hero::before{
+    content:"";
+    position:absolute;
+    inset:-20px 0 auto 0;
+    height:520px;
+    background-image:
+      linear-gradient(var(--border-soft) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border-soft) 1px, transparent 1px);
+    background-size:56px 56px;
+    mask-image:radial-gradient(ellipse 70% 100% at 30% 0%, black 0%, transparent 75%);
+    -webkit-mask-image:radial-gradient(ellipse 70% 100% at 30% 0%, black 0%, transparent 75%);
+    opacity:0.55;
+    pointer-events:none;
+    z-index:0;
+  }
+  .hero > .wrap{ position:relative; z-index:1; }
   .hero-eyebrow{
     font-family:'IBM Plex Mono', monospace;
     font-size:12.5px;
@@ -259,6 +282,7 @@
     z-index:2;
   }
   .db-core .db-icon{
+    position:relative;
     width:58px; height:58px;
     margin:0 auto 8px;
     border-radius:50%;
@@ -268,7 +292,6 @@
     font-family:'IBM Plex Mono', monospace;
     font-size:11px;
     color:var(--text-dim);
-    transition:box-shadow 0.3s ease, border-color 0.3s ease;
   }
   .db-core .db-caption{
     font-family:'IBM Plex Mono', monospace;
@@ -276,13 +299,52 @@
     color:var(--text-faint);
     white-space:nowrap;
   }
-  .db-core.pulse-allow .db-icon{
-    border-color:var(--accent-line);
-    box-shadow:0 0 0 6px var(--accent-soft);
+  .db-ring{
+    position:absolute;
+    top:0; left:50%;
+    width:58px; height:58px;
+    transform:translateX(-50%);
+    border-radius:50%;
+    border:1px solid var(--success-line);
+    opacity:0;
+    pointer-events:none;
   }
-  .db-core.pulse-deny .db-icon{
-    border-color:var(--deny);
-    box-shadow:0 0 0 6px var(--deny-soft);
+
+  /* faint circuit tracks connecting each org to the boundary */
+  .track{
+    position:absolute;
+    top:38%;
+    height:2px;
+    border-radius:2px;
+    opacity:0.16;
+    z-index:0;
+  }
+  .track-allow{ left:19%; width:31%; background:linear-gradient(90deg, transparent, var(--success) 55%, transparent); }
+  .track-deny{ top:62%; left:63%; width:18%; background:linear-gradient(90deg, transparent, var(--deny) 55%, transparent); }
+
+  .barrier{
+    position:absolute;
+    left:63%; top:50%;
+    width:2px; height:72%;
+    transform:translate(-50%,-50%);
+    background-image:repeating-linear-gradient(to bottom, var(--deny) 0 6px, transparent 6px 12px);
+    opacity:0.38;
+    z-index:1;
+  }
+  .barrier-badge{
+    position:absolute;
+    top:50%; left:50%;
+    transform:translate(-50%,-50%);
+    background:var(--bg-inset);
+    border:1px solid var(--deny-line);
+    color:var(--deny);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:9px;
+    font-weight:600;
+    letter-spacing:0.04em;
+    padding:3px 6px;
+    border-radius:4px;
+    white-space:nowrap;
   }
 
   .packet{
@@ -291,9 +353,10 @@
     width:9px; height:9px;
     border-radius:50%;
     opacity:0;
+    z-index:2;
   }
-  .packet-allow{ background:var(--accent); box-shadow:0 0 8px var(--accent); }
-  .packet-deny{ top:62%; background:var(--deny); box-shadow:0 0 8px var(--deny); }
+  .packet-allow{ background:var(--success); box-shadow:0 0 6px var(--success), 0 0 14px var(--success-soft); }
+  .packet-deny{ top:62%; background:var(--deny); box-shadow:0 0 6px var(--deny), 0 0 14px var(--deny-soft); }
 
   .verdict{
     position:absolute;
@@ -303,50 +366,73 @@
     opacity:0;
     white-space:nowrap;
   }
-  .verdict-allow{ top:22%; left:50%; transform:translateX(-50%); color:var(--accent); }
+  .verdict-allow{ top:22%; left:50%; transform:translateX(-50%); color:var(--success); }
   .verdict-deny{ top:74%; left:50%; transform:translateX(-50%); color:var(--deny); }
 
-  .rls-diagram.animate .packet-allow{ animation: travel-allow 5s ease-in-out infinite; }
-  .rls-diagram.animate .packet-deny{ animation: travel-deny 5s ease-in-out infinite; }
-  .rls-diagram.animate .db-core{ animation: db-glow 5s ease-in-out infinite; }
-  .rls-diagram.animate .verdict-allow{ animation: verdict-allow 5s ease-in-out infinite; }
-  .rls-diagram.animate .verdict-deny{ animation: verdict-deny 5s ease-in-out infinite; }
+  .rls-diagram.animate .track-allow{ animation: track-pulse 5s cubic-bezier(.4,0,.2,1) infinite; }
+  .rls-diagram.animate .track-deny{ animation: track-pulse 5s cubic-bezier(.4,0,.2,1) infinite; }
+  .rls-diagram.animate .barrier{ animation: barrier-flash 5s cubic-bezier(.4,0,.2,1) infinite; }
+  .rls-diagram.animate .packet-allow{ animation: travel-allow 5s cubic-bezier(.4,0,.2,1) infinite; }
+  .rls-diagram.animate .packet-deny{ animation: travel-deny 5s cubic-bezier(.4,0,.2,1) infinite; }
+  .rls-diagram.animate .db-ring{ animation: db-ripple 5s cubic-bezier(.4,0,.2,1) infinite; }
+  .rls-diagram.animate .verdict-allow{ animation: verdict-allow 5s cubic-bezier(.4,0,.2,1) infinite; }
+  .rls-diagram.animate .verdict-deny{ animation: verdict-deny 5s cubic-bezier(.4,0,.2,1) infinite; }
 
+  @keyframes track-pulse{
+    0%, 4%{ opacity:0.14; }
+    12%, 32%{ opacity:0.9; }
+    38%{ opacity:0.14; }
+    60%{ opacity:0.14; }
+    66%, 86%{ opacity:0.9; }
+    94%, 100%{ opacity:0.14; }
+  }
+  @keyframes barrier-flash{
+    0%, 36%{ opacity:0.38; transform:translate(-50%,-50%); }
+    40%{ opacity:1; transform:translate(-53%,-50%); }
+    43%{ opacity:1; transform:translate(-47%,-50%); }
+    46%{ opacity:1; transform:translate(-50%,-50%); }
+    58%{ opacity:0.38; }
+    100%{ opacity:0.38; }
+  }
   @keyframes travel-allow{
-    0%{ left:18%; opacity:0; }
-    8%{ opacity:1; }
-    38%{ left:47%; opacity:1; }
-    50%{ left:50%; opacity:1; }
-    62%{ left:47%; opacity:1; }
-    92%{ left:18%; opacity:1; }
-    100%{ left:18%; opacity:0; }
+    0%{ left:19%; opacity:0; transform:scale(0.5); }
+    6%{ opacity:1; transform:scale(1); }
+    34%{ left:46%; opacity:1; transform:scale(1); }
+    40%{ left:50%; opacity:1; transform:scale(0.3); }
+    43%{ opacity:0; transform:scale(0.2); }
+    57%{ opacity:0; left:50%; transform:scale(0.2); }
+    61%{ opacity:1; left:50%; transform:scale(1); }
+    90%{ left:19%; opacity:1; transform:scale(1); }
+    100%{ left:19%; opacity:0; transform:scale(0.5); }
   }
   @keyframes travel-deny{
-    0%{ right:18%; left:auto; opacity:0; }
-    8%{ opacity:1; }
-    38%{ left:56%; right:auto; opacity:1; }
-    46%{ left:54%; opacity:1; }
-    54%{ left:56%; opacity:1; }
-    92%{ right:18%; left:auto; opacity:1; }
-    100%{ right:18%; left:auto; opacity:0; }
+    0%{ left:81%; opacity:0; transform:scale(0.5); }
+    6%{ opacity:1; transform:scale(1); }
+    34%{ left:66%; opacity:1; }
+    40%{ left:63%; opacity:1; transform:scale(1.3); }
+    43%{ left:67%; opacity:1; transform:scale(0.85); }
+    46%{ left:63%; opacity:1; transform:scale(1.1); }
+    50%{ left:68%; opacity:1; transform:scale(1); }
+    90%{ left:81%; opacity:1; transform:scale(1); }
+    100%{ left:81%; opacity:0; transform:scale(0.5); }
   }
   @keyframes verdict-allow{
-    0%, 42%{ opacity:0; }
-    48%{ opacity:1; }
-    58%{ opacity:1; }
-    66%, 100%{ opacity:0; }
+    0%, 38%{ opacity:0; }
+    44%{ opacity:1; }
+    56%{ opacity:1; }
+    64%, 100%{ opacity:0; }
   }
   @keyframes verdict-deny{
-    0%, 42%{ opacity:0; }
-    48%{ opacity:1; }
-    58%{ opacity:1; }
-    66%, 100%{ opacity:0; }
+    0%, 38%{ opacity:0; }
+    44%{ opacity:1; }
+    56%{ opacity:1; }
+    64%, 100%{ opacity:0; }
   }
-
-  @keyframes db-glow{
-    0%, 42%{ box-shadow:none; }
-    48%, 58%{ box-shadow:0 0 0 8px var(--accent-soft), 0 0 0 0 var(--deny-soft) inset; }
-    66%, 100%{ box-shadow:none; }
+  @keyframes db-ripple{
+    0%, 38%{ transform:translateX(-50%) scale(1); opacity:0; }
+    41%{ transform:translateX(-50%) scale(1); opacity:0.9; }
+    58%{ transform:translateX(-50%) scale(2.4); opacity:0; }
+    100%{ opacity:0; }
   }
 
   @media (max-width:640px){
@@ -354,8 +440,10 @@
     .org-panel .org-name{ font-size:12.5px; }
     .org-panel .query-line{ font-size:9.5px; padding:6px 7px; }
     .db-core .db-icon{ width:44px; height:44px; font-size:9px; }
+    .db-ring{ width:44px; height:44px; }
     .db-core .db-caption{ font-size:9px; }
     .verdict{ font-size:9.5px; }
+    .barrier-badge{ font-size:8px; padding:2px 4px; }
   }
 
   .diagram-legend{
@@ -606,12 +694,19 @@
         <span class="label">rls_boundary.sql — live query trace</span>
       </div>
       <div class="rls-diagram" id="rlsDiagram">
+        <div class="track track-allow"></div>
+        <div class="track track-deny"></div>
+        <div class="barrier">
+          <span class="barrier-badge">RLS</span>
+        </div>
+
         <div class="org-panel org-a">
           <div class="org-name">Acme Inc <span class="tag">org_id: a1</span></div>
           <div class="query-line">select * from projects</div>
         </div>
 
         <div class="db-core" id="dbCore">
+          <div class="db-ring"></div>
           <div class="db-icon">DB</div>
           <div class="db-caption">Postgres + RLS</div>
         </div>
@@ -627,7 +722,7 @@
         <div class="verdict verdict-deny">403 · 0 rows</div>
       </div>
       <div class="diagram-legend">
-        <span class="sw"><span class="dot" style="background:var(--accent)"></span> same-org query, allowed</span>
+        <span class="sw"><span class="dot" style="background:var(--success)"></span> same-org query, allowed</span>
         <span class="sw"><span class="dot" style="background:var(--deny)"></span> cross-org query, denied by policy</span>
       </div>
     </div>
