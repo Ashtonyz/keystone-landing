@@ -781,43 +781,38 @@
     <div class="section-head reveal">
       <div>
         <div class="section-eyebrow">Field notes</div>
-        <h2>A bug we already hit for you</h2>
+        <h2>A bug we caught before it shipped</h2>
       </div>
-      <p>RLS is worth the setup pain, but it has sharp edges. This is the recursion bug that showed up while building the org-membership policy — and the fix.</p>
+      <p>Every multi-tenant starter kit promises isolation. This is the exact policy that would have broken it in ours — found in a pre-release audit, not by a customer.</p>
     </div>
 
     <div class="code-grid">
       <div class="reveal">
-        <span class="code-badge bad">✕ RECURSES</span>
-        <p class="code-note">The membership policy checked "does this user belong to this org" by querying <code>org_members</code> — the same table the policy protects. Every read re-triggers the policy, which triggers another read, forever.</p>
-        <p class="code-note"><span class="code-badge good" style="margin-top:14px;">✓ FIXED</span><br>A <code>security definer</code> function reads membership with elevated privileges, bypassing RLS internally — breaking the loop while keeping the rule intact.</p>
+        <span class="code-badge bad">✕ EXPLOITABLE</span>
+        <p class="code-note">The insert policy on <code>organization_members</code> checked <em>who</em> was joining, but never <em>which organization</em>. Any authenticated user could grant themselves membership — including <code>role: 'owner'</code> — in any organization, just by knowing its id.</p>
+        <p class="code-note"><span class="code-badge good" style="margin-top:14px;">✓ FIXED</span><br>The policy is scoped to organizations the caller actually owns — the only legitimate client-side path to create a membership row. Invite acceptance happens separately, server-side, via a trigger that bypasses RLS entirely.</p>
       </div>
 
       <div class="editor reveal">
         <div class="editor-bar">
           <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-          <span class="filename">0002_rls_policies.sql</span>
+          <span class="filename">supabase/schema.sql</span>
         </div>
-        <pre class="code"><span class="ln"> 1</span><span class="cm bad-line">-- ✕ this recurses: the policy queries the table it protects</span>
-<span class="ln"> 2</span><span class="kw">create policy</span> <span class="str">"members can view their org"</span>
-<span class="ln"> 3</span><span class="kw">on</span> org_members <span class="kw">for select</span>
-<span class="ln"> 4</span><span class="kw">using</span> (
-<span class="ln"> 5</span>  org_id <span class="kw">in</span> (
-<span class="ln"> 6</span>    <span class="kw">select</span> org_id <span class="kw">from</span> org_members <span class="kw">where</span> user_id = auth.uid()
-<span class="ln"> 7</span>  )
-<span class="ln"> 8</span>);
-<span class="ln"> 9</span>
-<span class="ln">10</span><span class="cm">-- ✓ fixed: a security definer function breaks the recursion</span>
-<span class="ln">11</span><span class="kw">create function</span> <span class="fn">auth.user_org_ids</span>()
-<span class="ln">12</span><span class="kw">returns setof</span> uuid
-<span class="ln">13</span><span class="kw">language</span> sql <span class="kw">security definer stable</span>
-<span class="ln">14</span><span class="kw">as</span> $$
-<span class="ln">15</span>  <span class="kw">select</span> org_id <span class="kw">from</span> org_members <span class="kw">where</span> user_id = auth.uid()
-<span class="ln">16</span>$$;
-<span class="ln">17</span>
-<span class="ln">18</span><span class="kw">create policy</span> <span class="str">"members can view their org"</span>
-<span class="ln">19</span><span class="kw">on</span> org_members <span class="kw">for select</span>
-<span class="ln">20</span><span class="kw">using</span> ( org_id <span class="kw">in</span> (<span class="kw">select</span> <span class="fn">auth.user_org_ids</span>()) );</pre>
+        <pre class="code"><span class="ln"> 1</span><span class="cm bad-line">-- ✕ checks who, not which org — anyone can join anyone's org</span>
+<span class="ln"> 2</span><span class="kw">create policy</span> <span class="str">"Users can insert their own membership"</span>
+<span class="ln"> 3</span><span class="kw">on</span> organization_members <span class="kw">for insert</span>
+<span class="ln"> 4</span><span class="kw">with check</span> (user_id = auth.uid());
+<span class="ln"> 5</span>
+<span class="ln"> 6</span><span class="cm">-- ✓ fixed: scoped to orgs the caller actually owns</span>
+<span class="ln"> 7</span><span class="kw">create policy</span> <span class="str">"Owners can add themselves when creating an org"</span>
+<span class="ln"> 8</span><span class="kw">on</span> organization_members <span class="kw">for insert</span>
+<span class="ln"> 9</span><span class="kw">with check</span> (
+<span class="ln">10</span>  user_id = auth.uid()
+<span class="ln">11</span>  <span class="kw">and</span> role = <span class="str">'owner'</span>
+<span class="ln">12</span>  <span class="kw">and</span> organization_id <span class="kw">in</span> (
+<span class="ln">13</span>    <span class="kw">select</span> id <span class="kw">from</span> organizations <span class="kw">where</span> owner_id = auth.uid()
+<span class="ln">14</span>  )
+<span class="ln">15</span>);</pre>
       </div>
     </div>
   </div>
