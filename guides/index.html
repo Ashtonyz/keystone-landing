@@ -78,12 +78,55 @@
         <div class="guide-meta">1 Sep 2026 · 9 min</div>
       </a>
 
-    </div>
+      <a class="guide-row stagger-item" href="supabase-rls-role-hierarchies/">
+        <div>
+          <div class="guide-title">The role check that makes an admin of one tenant an admin of all</div>
+          <p class="guide-blurb">
+            Owner, admin, member — with the tenant as a required argument, so a policy that
+            forgets it won't compile. Plus every escalation path between the ranks, and why
+            some denials raise while others are silent.
+          </p>
+        </div>
+        <div class="guide-meta">1 Sep 2026 · 8 min</div>
+      </a>
 
-    <p style="color:var(--text-faint);font-size:14.5px;margin-top:28px;font-family:'IBM Plex Mono',monospace;">
-      More on role hierarchies, invite acceptance, per-row sharing, and service-role
-      boundaries — in progress.
-    </p>
+      <a class="guide-row stagger-item" href="supabase-invite-acceptance/">
+        <div>
+          <div class="guide-title">Why invite acceptance can't be an RLS policy</div>
+          <p class="guide-blurb">
+            Four holes in the policy everyone reaches for first, and the
+            <code>security definer</code> function that closes them — claiming in one
+            statement, refusing unverified email, and never becoming an enumeration oracle.
+          </p>
+        </div>
+        <div class="guide-meta">1 Sep 2026 · 8 min</div>
+      </a>
+
+      <a class="guide-row stagger-item" href="postgres-rls-per-row-sharing/">
+        <div>
+          <div class="guide-title">Per-row sharing in RLS without making it transitive</div>
+          <p class="guide-blurb">
+            How "you may share what you can see" turns every recipient into a distributor,
+            and how one expression reused across four policies lets a view-only grant quietly
+            permit writes.
+          </p>
+        </div>
+        <div class="guide-meta">1 Sep 2026 · 7 min</div>
+      </a>
+
+      <a class="guide-row stagger-item" href="postgres-security-definer-boundaries/">
+        <div>
+          <div class="guide-title">When RLS can't express it: security definer done right</div>
+          <p class="guide-blurb">
+            Authenticate, authorise, validate, act — in that order, because the moment an
+            operation moves into a function, row-level security stops running. Plus the two
+            defaults that turn a helper into a privilege escalation.
+          </p>
+        </div>
+        <div class="guide-meta">1 Sep 2026 · 8 min</div>
+      </a>
+
+    </div>
   </div>
 </section>
 

@@ -16,10 +16,34 @@
     <loc>https://keystone-landing-cyy.pages.dev/guides/</loc>
     <lastmod>2026-09-01</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.8</priority>
   </url>
   <url>
     <loc>https://keystone-landing-cyy.pages.dev/guides/supabase-rls-tenant-isolation/</loc>
+    <lastmod>2026-09-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://keystone-landing-cyy.pages.dev/guides/supabase-rls-role-hierarchies/</loc>
+    <lastmod>2026-09-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://keystone-landing-cyy.pages.dev/guides/supabase-invite-acceptance/</loc>
+    <lastmod>2026-09-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://keystone-landing-cyy.pages.dev/guides/postgres-rls-per-row-sharing/</loc>
+    <lastmod>2026-09-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://keystone-landing-cyy.pages.dev/guides/postgres-security-definer-boundaries/</loc>
     <lastmod>2026-09-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>

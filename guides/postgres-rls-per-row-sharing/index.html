@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Per-row sharing in Postgres RLS without making it transitive</title>
+<meta name="description" content="Sharing one row with one person, without every recipient becoming a distributor and without a view-only grant quietly permitting writes.">
+<link rel="canonical" href="https://keystone-landing-cyy.pages.dev/guides/postgres-rls-per-row-sharing/">
+<meta property="og:title" content="Per-row sharing in RLS without making it transitive">
+<meta property="og:description" content="How a share becomes a distribution network, and how a view-only grant quietly permits writes.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://keystone-landing-cyy.pages.dev/guides/postgres-rls-per-row-sharing/">
+<meta property="og:site_name" content="Scaffold">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://keystone-landing-cyy.pages.dev/assets/og-guide-sharing.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Per-row sharing in Postgres RLS.">
+<meta property="article:published_time" content="2026-09-01">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Per-row sharing in RLS without making it transitive">
+<meta name="twitter:description" content="How a share becomes a distribution network, and how a view-only grant quietly permits writes.">
+<meta name="twitter:image" content="https://keystone-landing-cyy.pages.dev/assets/og-guide-sharing.jpg">
+<meta name="theme-color" content="#0a0a0c">
+<link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="manifest" href="../../site.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../assets/base.css">
+<link rel="stylesheet" href="../../assets/guides.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <a class="nav-brand" href="../../">
+      <span class="mark">◆</span> SCAFFOLD
+    </a>
+    <div class="nav-links">
+      <a href="../">Guides</a>
+      <a href="../../keystone/">Keystone</a>
+      <a href="../../#products">Products</a>
+    </div>
+    <div class="nav-right">
+      <a class="btn btn-accent btn-sm" href="../../keystone/">Get Keystone</a>
+    </div>
+  </div>
+</header>
+
+<div class="wrap article">
+  <div class="article-head">
+    <div class="article-eyebrow">Guide · Postgres RLS</div>
+    <h1>Per-row sharing in RLS without making it transitive</h1>
+    <p class="article-standfirst">
+      A share is a second route to a row, running alongside tenant membership. The danger is
+      that the second route turns out to be wider than the first, in ways that look
+      reasonable while you're writing them.
+    </p>
+    <div class="article-byline">Published 1 September 2026 · 7 min read</div>
+  </div>
+
+  <div class="prose">
+
+    <p>
+      Sooner or later one specific row needs to reach one specific person who isn't in the
+      tenant — a document shared with a client, a report sent to a contractor. Three ways
+      that goes wrong.
+    </p>
+
+    <h2>1. Sharing becomes transitive</h2>
+
+    <div class="snippet">
+      <div class="snippet-bar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="filename">schema.sql</span>
+        <span class="tag bad">✕ exploitable</span>
+      </div>
+<pre><span class="cm">-- "you may share what you can see"</span>
+<span class="kw">create policy</span> <span class="str">"share a document"</span>
+<span class="kw">on</span> document_shares <span class="kw">for insert</span>
+<span class="kw">with check</span> (<span class="fn">can_access_document</span>(document_id, <span class="str">'view'</span>));</pre>
+    </div>
+
+    <p>
+      Read it back: anyone who can see the row may grant it to anyone else. Every recipient
+      becomes a distributor, the grant graph escapes the tenant, and revoking the original
+      share does nothing about the copies made downstream.
+    </p>
+
+    <blockquote>
+      <p>Granting is a tenant right, not something a grant confers.</p>
+    </blockquote>
+
+    <p>
+      The check should ask whether you are a <em>member of the document's organization</em>,
+      deliberately not whether you can see the document:
+    </p>
+
+    <div class="snippet">
+      <div class="snippet-bar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="filename">schema.sql</span>
+        <span class="tag good">✓ fixed</span>
+      </div>
+<pre><span class="kw">create policy</span> <span class="str">"only members grant access"</span>
+<span class="kw">on</span> document_shares <span class="kw">for insert</span>
+<span class="kw">with check</span> (
+  granted_by = <span class="fn">auth.uid</span>()
+  <span class="kw">and</span> user_id &lt;&gt; <span class="fn">auth.uid</span>()
+  <span class="kw">and exists</span> (
+    <span class="kw">select</span> 1 <span class="kw">from</span> documents d
+    <span class="kw">where</span> d.id = document_shares.document_id
+      <span class="kw">and</span> <span class="fn">has_org_role</span>(d.organization_id, <span class="str">'member'</span>)
+  )
+);</pre>
+    </div>
+
+    <h2>2. One expression for every verb</h2>
+
+    <p>
+      The tempting simplification is to write the access check once and reuse it in all four
+      policies. Do that and a share meant for reading silently permits writing, because
+      <code>SELECT</code> and <code>UPDATE</code> were asked the same question.
+    </p>
+
+    <p>The levels have to differ per verb:</p>
+
+    <div class="snippet">
+      <div class="snippet-bar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="filename">schema.sql</span>
+        <span class="tag good">✓ fixed</span>
+      </div>
+<pre><span class="kw">create type</span> share_level <span class="kw">as enum</span> (<span class="str">'view'</span>, <span class="str">'edit'</span>);   <span class="cm">-- ordered</span>
+
+<span class="kw">create policy</span> <span class="str">"read if a member or shared with"</span>
+<span class="kw">on</span> documents <span class="kw">for select</span>
+<span class="kw">using</span> (<span class="fn">can_access_document</span>(id, <span class="str">'view'</span>));
+
+<span class="kw">create policy</span> <span class="str">"write if a member or shared to edit"</span>
+<span class="kw">on</span> documents <span class="kw">for update</span>
+<span class="kw">using</span>      (<span class="fn">can_access_document</span>(id, <span class="str">'edit'</span>))
+<span class="kw">with check</span> (<span class="fn">can_access_document</span>(id, <span class="str">'edit'</span>));</pre>
+    </div>
+
+    <p>
+      Deletion isn't on that list at all. A share grants access to a row; it is never a
+      licence to destroy it. Creation and deletion stay with the tenant.
+    </p>
+
+    <h2>3. The share row is itself data</h2>
+
+    <p>
+      <code>document_shares</code> needs its own policies, and it's easy to leave it open
+      "because it's just a join table". It records who has access to what — a roster of your
+      customers' collaborators. Recipients may see their own grant, members may see grants on
+      their organization's documents, nobody else sees anything.
+    </p>
+
+    <p>
+      Its <code>SELECT</code> policy also has to consult <code>document_shares</code>, which
+      recurses — the same trap as the membership lookup in
+      <a href="../supabase-rls-tenant-isolation/">tenant isolation</a>, defused the same way,
+      with a <code>security definer</code> helper.
+    </p>
+
+    <h2>The shape that holds</h2>
+
+    <p>
+      One function answers "how much access does this caller have to this row, by any route",
+      and every policy calls it with the level that verb requires:
+    </p>
+
+    <div class="snippet">
+      <div class="snippet-bar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="filename">schema.sql</span>
+      </div>
+<pre><span class="kw">create or replace function</span> <span class="fn">public.can_access_document</span>(doc_id uuid, minimum share_level)
+<span class="kw">returns</span> boolean
+<span class="kw">language</span> sql <span class="kw">security definer stable</span>
+<span class="kw">set</span> search_path = public
+<span class="kw">as</span> $$
+  <span class="kw">select</span>
+    <span class="fn">coalesce</span>((<span class="kw">select</span> <span class="fn">has_org_role</span>(d.organization_id, <span class="str">'member'</span>)
+              <span class="kw">from</span> documents d <span class="kw">where</span> d.id = doc_id), <span class="kw">false</span>)
+    <span class="kw">or</span> <span class="fn">coalesce</span>(<span class="fn">public.share_level</span>(doc_id) &gt;= minimum, <span class="kw">false</span>)
+$$;</pre>
+    </div>
+
+    <p>
+      Both routes live in one place, so they can't drift apart across four policies — which
+      is what happens when the membership half gets updated and the share half doesn't.
+    </p>
+
+    <h2>What to test</h2>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Assertion</th><th>Guards</th></tr></thead>
+        <tbody>
+          <tr><td>The recipient sees the shared row</td><td>The happy path</td></tr>
+          <tr><td>The recipient gains no other row, and no membership</td><td>Scope of a share</td></tr>
+          <tr><td>A view-level share cannot edit</td><td>Per-verb levels</td></tr>
+          <tr><td>An edit-level share can edit</td><td>Not over-tightened</td></tr>
+          <tr><td>Even edit cannot delete</td><td>Destruction stays a tenant right</td></tr>
+          <tr><td>A recipient cannot raise their own level</td><td>Escalation</td></tr>
+          <tr><td>A recipient cannot re-share</td><td>Transitivity</td></tr>
+          <tr><td>A sharer cannot forge <code>granted_by</code></td><td>Attribution</td></tr>
+          <tr><td>Revoking removes access immediately</td><td>No caching in policy logic</td></tr>
+          <tr><td>Deleting a document drops its shares</td><td>No orphaned grants</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      Then break it on purpose. Change the insert policy to
+      <code>can_access_document(document_id, 'view')</code> and re-run: the re-share
+      assertion fails, and two more fail behind it as the share graph spreads. Three
+      failures from one plausible-looking simplification is the point.
+    </p>
+
+    <h2>Adapting it</h2>
+
+    <ul>
+      <li><strong>Sharing by link</strong> rather than by user: replace <code>user_id</code> with a token column and treat it exactly like the token in <a href="../supabase-invite-acceptance/">invite acceptance</a> — long, secret, expiring, revocable.</li>
+      <li><strong>Sharing to a whole organization:</strong> add a nullable <code>shared_with_org_id</code> and extend the helper. Keep it as one more branch in the same function, never as a new expression in each policy.</li>
+      <li><strong>Expiring shares:</strong> add <code>expires_at</code> and put it in the helper, not the policies — one place to forget instead of four.</li>
+      <li><strong>Audit:</strong> keep <code>granted_by</code> and <code>created_at</code>. Shares are the first thing customers ask about after an incident.</li>
+    </ul>
+
+  </div>
+
+  <div class="article-cta">
+    <div class="cta-eyebrow">Built on these patterns</div>
+    <h2>Keystone — multi-tenant, correct from the first commit</h2>
+    <p>
+      A Next.js + Supabase B2B starter kit with organizations, roles, invites, and per-org
+      row-level security already wired up and audited. One-time payment, full source,
+      unlimited projects.
+    </p>
+    <a class="btn btn-accent" href="../../keystone/">See what's inside — $49</a>
+    <a class="btn btn-ghost" href="../">More guides</a>
+  </div>
+
+  <div class="article-nav">
+    <a href="../">← All guides</a>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap footer-inner">
+    <div class="footer-brand">Scaffold</div>
+    <div class="footer-links">
+      <a href="../">Guides</a>
+      <a href="../../keystone/">Keystone</a>
+      <a href="../../">Home</a>
+    </div>
+  </div>
+</footer>
+
+<script src="../../assets/site.js"></script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "Per-row sharing in RLS without making it transitive",
+  "description": "Sharing one row with one person, without every recipient becoming a distributor and without a view-only grant quietly permitting writes.",
+  "image": "https://keystone-landing-cyy.pages.dev/assets/og-guide-sharing.jpg",
+  "datePublished": "2026-09-01",
+  "dateModified": "2026-09-01",
+  "author": { "@type": "Organization", "name": "Scaffold" },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Scaffold",
+    "logo": { "@type": "ImageObject", "url": "https://keystone-landing-cyy.pages.dev/assets/icon-512.png" }
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://keystone-landing-cyy.pages.dev/guides/postgres-rls-per-row-sharing/"
+  },
+  "about": [
+    { "@type": "Thing", "name": "PostgreSQL row-level security" },
+    { "@type": "Thing", "name": "Access control" }
+  ],
+  "proficiencyLevel": "Intermediate"
+}
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Scaffold", "item": "https://keystone-landing-cyy.pages.dev/" },
+    { "@type": "ListItem", "position": 2, "name": "Guides", "item": "https://keystone-landing-cyy.pages.dev/guides/" },
+    { "@type": "ListItem", "position": 3, "name": "Per-row sharing" }
+  ]
+}
+</script>
+
+</body>
+</html>

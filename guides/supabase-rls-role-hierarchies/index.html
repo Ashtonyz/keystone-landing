@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Postgres RLS role hierarchies: owner, admin, member — scoped per tenant</title>
+<meta name="description" content="A role check that asks whether a user is an admin, without asking of which organization, makes an admin of one tenant an admin of all. Ordered enums, a tenant-scoped helper, and the escalation paths to test.">
+<link rel="canonical" href="https://keystone-landing-cyy.pages.dev/guides/supabase-rls-role-hierarchies/">
+<meta property="og:title" content="The role check that makes an admin of one tenant an admin of all">
+<meta property="og:description" content="Owner, admin, member in Postgres RLS — and the escalation paths between them.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://keystone-landing-cyy.pages.dev/guides/supabase-rls-role-hierarchies/">
+<meta property="og:site_name" content="Scaffold">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://keystone-landing-cyy.pages.dev/assets/og-guide-roles.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Postgres RLS role hierarchies — scoping rank to a tenant.">
+<meta property="article:published_time" content="2026-09-01">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="The role check that makes an admin of one tenant an admin of all">
+<meta name="twitter:description" content="Owner, admin, member in Postgres RLS — and the escalation paths between them.">
+<meta name="twitter:image" content="https://keystone-landing-cyy.pages.dev/assets/og-guide-roles.jpg">
+<meta name="theme-color" content="#0a0a0c">
+<link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="manifest" href="../../site.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../assets/base.css">
+<link rel="stylesheet" href="../../assets/guides.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <a class="nav-brand" href="../../">
+      <span class="mark">◆</span> SCAFFOLD
+    </a>
+    <div class="nav-links">
+      <a href="../">Guides</a>
+      <a href="../../keystone/">Keystone</a>
+      <a href="../../#products">Products</a>
+    </div>
+    <div class="nav-right">
+      <a class="btn btn-accent btn-sm" href="../../keystone/">Get Keystone</a>
+    </div>
+  </div>
+</header>
+
+<div class="wrap article">
+  <div class="article-head">
+    <div class="article-eyebrow">Guide · Postgres RLS</div>
+    <h1>The role check that makes an admin of one tenant an admin of all</h1>
+    <p class="article-standfirst">
+      Once members of the same organization need different powers, most schemas grow a role
+      column and a policy that checks it. The check usually asks what rank someone holds,
+      and forgets to ask where they hold it.
+    </p>
+    <div class="article-byline">Published 1 September 2026 · 8 min read</div>
+  </div>
+
+  <div class="prose">
+
+    <p>
+      This is the sequel to <a href="../supabase-rls-tenant-isolation/">the insert-policy
+      bug that lets any user join any organization</a>, and it is the same mistake wearing
+      a different hat. That one checked <em>who</em> without checking <em>which tenant</em>.
+      This one checks <em>what rank</em> without checking <em>where it is held</em>.
+    </p>
+
+    <h2>The failure mode</h2>
+
+    <p>
+      You want admins to be able to delete projects and ordinary members not to. So:
+    </p>
+
+    <div class="snippet">
+      <div class="snippet-bar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="filename">schema.sql</span>
+        <span class="tag bad">✕ exploitable</span>
+      </div>
+<pre><span class="kw">create policy</span> <span class="str">"admins delete projects"</span>
+<span class="kw">on</span> projects <span class="kw">for delete</span>
+<span class="kw">using</span> (
+  <span class="kw">exists</span> (
+    <span class="kw">select</span> 1 <span class="kw">from</span> organization_members
+    <span class="kw">where</span> user_id = <span class="fn">auth.uid</span>() <span class="kw">and</span> role = <span class="str">'admin'</span>
+  )
+);</pre>
+    </div>
+
+    <p>
+      There is no correlation anywhere in that policy between the row being deleted and the
+      membership row being consulted. It asks "is this user an admin" and never "an admin of
+      what". Anyone who is an admin <em>somewhere</em> is an admin <em>everywhere</em>.
+    </p>
+
+    <div class="warn">
+      <span class="warn-label">Why this survives review</span>
+      <p>
+        On a healthy app with a hundred tenants, one legitimately-promoted admin can delete
+        every other tenant's data. Nothing looks wrong: the <code>SELECT</code> policies may
+        be perfectly scoped, the admin is a real admin, and the deletion is a normal request.
+      </p>
+    </div>
+
+    <h3>The same bug by a second route</h3>
+
+    <p>
+      Putting <code>role</code> on the <code>users</code> table produces the identical
+      outcome, earlier and more permanently. A column there cannot express "admin of Acme,
+      member of Globex" — so the moment a user joins a second tenant the data model is wrong
+      and no policy can rescue it.
+    </p>
+
+    <blockquote>
+      <p>Rank belongs on the membership, not on the user.</p>
+    </blockquote>
+
+    <h2>The fix: make the tenant a required argument</h2>
+
+    <p>
+      Rather than trusting everyone to remember the correlation, put it in the function
+      signature so the code will not compile without it.
+    </p>
+
+    <div class="snippet">
+      <div class="snippet-bar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="filename">schema.sql</span>
+        <span class="tag good">✓ fixed</span>
+      </div>
+<pre><span class="cm">-- declaration order IS the ranking: member &lt; admin &lt; owner</span>
+<span class="kw">create type</span> org_role <span class="kw">as enum</span> (<span class="str">'member'</span>, <span class="str">'admin'</span>, <span class="str">'owner'</span>);
+
+<span class="kw">create or replace function</span> <span class="fn">public.org_role</span>(org_id uuid)
+<span class="kw">returns</span> org_role
+<span class="kw">language</span> sql <span class="kw">security definer stable</span>
+<span class="kw">set</span> search_path = public
+<span class="kw">as</span> $$
+  <span class="kw">select</span> role <span class="kw">from</span> organization_members
+  <span class="kw">where</span> organization_id = org_id <span class="kw">and</span> user_id = <span class="fn">auth.uid</span>()
+$$;
+
+<span class="kw">create or replace function</span> <span class="fn">public.has_org_role</span>(org_id uuid, minimum org_role)
+<span class="kw">returns</span> boolean
+<span class="kw">language</span> sql <span class="kw">security definer stable</span>
+<span class="kw">set</span> search_path = public
+<span class="kw">as</span> $$
+  <span class="kw">select</span> <span class="fn">coalesce</span>(<span class="fn">public.org_role</span>(org_id) &gt;= minimum, <span class="kw">false</span>)
+$$;</pre>
+    </div>
+
+    <p>Every policy then reads the same way, with the row's own tenant supplied:</p>
+
+    <div class="snippet">
+      <div class="snippet-bar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="filename">schema.sql</span>
+        <span class="tag good">✓ fixed</span>
+      </div>
+<pre><span class="kw">create policy</span> <span class="str">"members read projects"</span>
+<span class="kw">on</span> projects <span class="kw">for select</span>
+<span class="kw">using</span> (<span class="fn">has_org_role</span>(organization_id, <span class="str">'member'</span>));
+
+<span class="kw">create policy</span> <span class="str">"admins delete projects"</span>
+<span class="kw">on</span> projects <span class="kw">for delete</span>
+<span class="kw">using</span> (<span class="fn">has_org_role</span>(organization_id, <span class="str">'admin'</span>));</pre>
+    </div>
+
+    <p>
+      <code>organization_id</code> there is the column of the row being touched, so the
+      question is always "what is this caller's rank <em>in this row's tenant</em>".
+      Isolation and authorisation collapse into one call, and there is no version of the
+      policy that forgets the tenant.
+    </p>
+
+    <h3>Two details doing quiet work</h3>
+
+    <p>
+      <strong>The enum ranks itself.</strong> Postgres orders enum values by declaration
+      order, so <code>member &lt; admin &lt; owner</code> and <code>&gt;=</code> means "at
+      least". No lookup table, no integer constants to keep in sync. The trap: adding a rank
+      later with a bare <code>alter type ... add value</code> appends it <em>above</em>
+      <code>owner</code>. Use <code>before</code> or <code>after</code>.
+    </p>
+
+    <p>
+      <strong>The <code>coalesce</code> is not decoration.</strong> A non-member has no row,
+      so <code>org_role()</code> returns null and <code>null &gt;= 'admin'</code> is null,
+      not false. Null in a policy denies, so the behaviour is right — but the expression is
+      now a three-valued thing that reads as a bug to the next person, and it combines badly
+      with <code>or</code>. Pin it to a boolean.
+    </p>
+
+    <h2>Escalation is the thing to test</h2>
+
+    <p>
+      A hierarchy is only real if the rungs can't be climbed. The membership table is where
+      that happens, and three separate conditions have to hold — it is tempting to collapse
+      them:
+    </p>
+
+    <div class="snippet">
+      <div class="snippet-bar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="filename">schema.sql</span>
+      </div>
+<pre><span class="kw">create policy</span> <span class="str">"admins manage members below owner"</span>
+<span class="kw">on</span> organization_members <span class="kw">for update</span>
+<span class="kw">using</span> (
+  <span class="fn">has_org_role</span>(organization_id, <span class="str">'admin'</span>)
+  <span class="kw">and</span> user_id &lt;&gt; <span class="fn">auth.uid</span>()      <span class="cm">-- no editing yourself</span>
+  <span class="kw">and</span> role &lt; <span class="str">'owner'</span>            <span class="cm">-- no touching an owner</span>
+)
+<span class="kw">with check</span> (
+  <span class="fn">has_org_role</span>(organization_id, <span class="str">'admin'</span>)
+  <span class="kw">and</span> role &lt; <span class="str">'owner'</span>            <span class="cm">-- no minting an owner</span>
+);</pre>
+    </div>
+
+    <p>
+      <code>user_id &lt;&gt; auth.uid()</code> is what stops self-promotion.
+      <code>role &lt; 'owner'</code> appears twice on purpose: in <code>USING</code> it reads
+      the existing row, so an admin can't demote the owner; in <code>WITH CHECK</code> it
+      reads the row being left behind, so an admin can't promote anyone — including, later,
+      themselves — to owner.
+    </p>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Attempt</th><th>Blocked by</th></tr></thead>
+        <tbody>
+          <tr><td>Member promotes themselves to admin</td><td><code>user_id &lt;&gt; auth.uid()</code> in <code>USING</code></td></tr>
+          <tr><td>Admin promotes themselves to owner</td><td>same</td></tr>
+          <tr><td>Admin creates a new owner</td><td><code>role &lt; 'owner'</code> in <code>WITH CHECK</code></td></tr>
+          <tr><td>Admin promotes a member to owner</td><td><code>role &lt; 'owner'</code> in <code>WITH CHECK</code></td></tr>
+          <tr><td>Admin demotes or removes the owner</td><td><code>role &lt; 'owner'</code> in <code>USING</code></td></tr>
+          <tr><td>Admin of Acme acts inside Globex</td><td>the <code>org_id</code> argument</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>Denials are not uniform, and it matters</h2>
+
+    <p>
+      Two of those are blocked loudly and the rest silently, which surprises everyone
+      debugging their own policies for the first time:
+    </p>
+
+    <ul>
+      <li><strong><code>USING</code> rejects → silence.</strong> The row was never visible, so the statement affects zero rows and returns success. <code>supabase-js</code> gives you no error.</li>
+      <li><strong><code>WITH CHECK</code> rejects → an error:</strong> <em>"new row violates row-level security policy"</em>.</li>
+    </ul>
+
+    <p>
+      So "admin promotes a member to owner" <em>raises</em> — it passes <code>USING</code>,
+      since she is a below-owner member of his organization, and dies on the row he tried to
+      leave behind. But "admin promotes <em>himself</em>" is <em>silent</em>, because he
+      never passes <code>USING</code> at all.
+    </p>
+
+    <blockquote>
+      <p>
+        Never assert that something was blocked by checking a call didn't throw. Read the
+        data back and assert on what is actually there.
+      </p>
+    </blockquote>
+
+    <p>
+      Write the self-promotion test expecting an exception and it fails against a perfectly
+      correct policy. Write the other one expecting silence and it fails too. Reading the
+      row back afterwards is the only form that works for both.
+    </p>
+
+    <h2>Adapting it</h2>
+
+    <ul>
+      <li><strong>More ranks:</strong> add them to the enum in the right position and every <code>&gt;=</code> comparison keeps working untouched.</li>
+      <li><strong>Per-capability grants</strong> (<code>can_invite</code>, <code>can_bill</code>) don't fit an ordered enum. Use a table keyed by <code>(organization_id, user_id, capability)</code> and a <code>has_capability(org_id, cap)</code> helper. The discipline to carry over is the <code>org_id</code> argument, not the enum.</li>
+      <li><strong>Ownership transfer</strong> is deliberately impossible through these policies — every path to minting an owner is blocked. It belongs in a <code>security definer</code> function that demotes and promotes in one transaction.</li>
+    </ul>
+
+    <p>
+      Which is a whole subject of its own: what to do when the operation is one RLS
+      structurally cannot express, and what you give up the moment you move it out.
+    </p>
+
+  </div>
+
+  <div class="article-cta">
+    <div class="cta-eyebrow">Built on these patterns</div>
+    <h2>Keystone — multi-tenant, correct from the first commit</h2>
+    <p>
+      A Next.js + Supabase B2B starter kit with organizations, roles, invites, and per-org
+      row-level security already wired up and audited. One-time payment, full source,
+      unlimited projects.
+    </p>
+    <a class="btn btn-accent" href="../../keystone/">See what's inside — $49</a>
+    <a class="btn btn-ghost" href="../">More guides</a>
+  </div>
+
+  <div class="article-nav">
+    <a href="../">← All guides</a>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap footer-inner">
+    <div class="footer-brand">Scaffold</div>
+    <div class="footer-links">
+      <a href="../">Guides</a>
+      <a href="../../keystone/">Keystone</a>
+      <a href="../../">Home</a>
+    </div>
+  </div>
+</footer>
+
+<script src="../../assets/site.js"></script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "The role check that makes an admin of one tenant an admin of all",
+  "description": "A role check that asks whether a user is an admin, without asking of which organization, makes an admin of one tenant an admin of all. Ordered enums, a tenant-scoped helper, and the escalation paths to test.",
+  "image": "https://keystone-landing-cyy.pages.dev/assets/og-guide-roles.jpg",
+  "datePublished": "2026-09-01",
+  "dateModified": "2026-09-01",
+  "author": { "@type": "Organization", "name": "Scaffold" },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Scaffold",
+    "logo": { "@type": "ImageObject", "url": "https://keystone-landing-cyy.pages.dev/assets/icon-512.png" }
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://keystone-landing-cyy.pages.dev/guides/supabase-rls-role-hierarchies/"
+  },
+  "about": [
+    { "@type": "Thing", "name": "PostgreSQL row-level security" },
+    { "@type": "Thing", "name": "Role-based access control" },
+    { "@type": "Thing", "name": "Supabase" }
+  ],
+  "proficiencyLevel": "Intermediate"
+}
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Scaffold", "item": "https://keystone-landing-cyy.pages.dev/" },
+    { "@type": "ListItem", "position": 2, "name": "Guides", "item": "https://keystone-landing-cyy.pages.dev/guides/" },
+    { "@type": "ListItem", "position": 3, "name": "RLS role hierarchies" }
+  ]
+}
+</script>
+
+</body>
+</html>

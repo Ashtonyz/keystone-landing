@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Postgres security definer functions: where RLS ends and you take over</title>
+<meta name="description" content="When an operation can't be expressed as a row-level security policy, it becomes a security definer function — and every guarantee RLS gave you has to be restated by hand, in order.">
+<link rel="canonical" href="https://keystone-landing-cyy.pages.dev/guides/postgres-security-definer-boundaries/">
+<meta property="og:title" content="When RLS can't express it: security definer done right">
+<meta property="og:description" content="Authenticate, authorise, validate, act — and the two mistakes that turn a helper into a privilege escalation.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://keystone-landing-cyy.pages.dev/guides/postgres-security-definer-boundaries/">
+<meta property="og:site_name" content="Scaffold">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://keystone-landing-cyy.pages.dev/assets/og-guide-definer.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Postgres security definer function boundaries.">
+<meta property="article:published_time" content="2026-09-01">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="When RLS can't express it: security definer done right">
+<meta name="twitter:description" content="Authenticate, authorise, validate, act — and the two mistakes that turn a helper into a privilege escalation.">
+<meta name="twitter:image" content="https://keystone-landing-cyy.pages.dev/assets/og-guide-definer.jpg">
+<meta name="theme-color" content="#0a0a0c">
+<link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="manifest" href="../../site.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../assets/base.css">
+<link rel="stylesheet" href="../../assets/guides.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <a class="nav-brand" href="../../">
+      <span class="mark">◆</span> SCAFFOLD
+    </a>
+    <div class="nav-links">
+      <a href="../">Guides</a>
+      <a href="../../keystone/">Keystone</a>
+      <a href="../../#products">Products</a>
+    </div>
+    <div class="nav-right">
+      <a class="btn btn-accent btn-sm" href="../../keystone/">Get Keystone</a>
+    </div>
+  </div>
+</header>
+
+<div class="wrap article">
+  <div class="article-head">
+    <div class="article-eyebrow">Guide · Postgres RLS</div>
+    <h1>When RLS can't express it: security definer done right</h1>
+    <p class="article-standfirst">
+      Some operations don't fit in a policy. Moving one into a function is the correct
+      answer — and the moment you do, row-level security stops running and every guarantee
+      it was providing becomes yours to restate.
+    </p>
+    <div class="article-byline">Published 1 September 2026 · 8 min read</div>
+  </div>
+
+  <div class="prose">
+
+    <h2>Deciding where an operation lives</h2>
+
+    <p>Three places, in order of preference. Every step down costs you a guarantee.</p>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th></th><th>Enforced by</th><th>Use when</th></tr></thead>
+        <tbody>
+          <tr><td><strong>RLS policy</strong></td><td>Postgres, on every query, forever</td><td>The rule is a property of a single row</td></tr>
+          <tr><td><strong><code>security definer</code> function</strong></td><td>You, in the function body</td><td>The rule spans rows, or the caller must do something they otherwise can't</td></tr>
+          <tr><td><strong>Service role</strong></td><td>You, in application code</td><td>The actor isn't a user at all — webhooks, cron, backfills</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <blockquote>
+      <p>
+        Prefer up the list. A policy applies to every query anyone ever writes, including the
+        one added in six months by someone who never read this page.
+      </p>
+    </blockquote>
+
+    <h2>The worked example: ownership transfer</h2>
+
+    <p>
+      <a href="../supabase-rls-role-hierarchies/">Role hierarchies</a> deliberately make
+      ownership transfer impossible through policies. Three properties put it out of reach:
+    </p>
+
+    <ol>
+      <li>It writes three rows that must agree, and a per-row check can't see the whole picture.</li>
+      <li>It <strong>demotes the caller</strong>, which no sensible <code>WITH CHECK</code> would permit.</li>
+      <li>It must be all-or-nothing — a half-applied transfer leaves an organization with two owners, or none.</li>
+    </ol>
+
+    <p>
+      So it becomes a function. And the moment it does, <strong>RLS stops running</strong>.
+      The order that follows is not stylistic:
+    </p>
+
+    <blockquote>
+      <p>authenticate → authorise → validate → act</p>
+    </blockquote>
+
+    <div class="snippet">
+      <div class="snippet-bar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="filename">schema.sql</span>
+        <span class="tag good">✓ correct</span>
+      </div>
+<pre><span class="kw">create or replace function</span> <span class="fn">public.transfer_ownership</span>(org_id uuid, new_owner uuid)
+<span class="kw">returns void</span>
+<span class="kw">language</span> plpgsql <span class="kw">security definer</span>
+<span class="kw">set</span> search_path = public          <span class="cm">-- not optional</span>
+<span class="kw">as</span> $$
+<span class="kw">declare</span>
+  caller uuid := <span class="fn">auth.uid</span>();
+<span class="kw">begin</span>
+  <span class="cm">-- 1. authenticate</span>
+  <span class="kw">if</span> caller <span class="kw">is null then</span>
+    <span class="kw">raise exception</span> <span class="str">'not authenticated'</span>;
+  <span class="kw">end if</span>;
+
+  <span class="cm">-- 2. authorise -- RLS is NOT consulted in here</span>
+  <span class="kw">if not exists</span> (
+    <span class="kw">select</span> 1 <span class="kw">from</span> organization_members
+    <span class="kw">where</span> organization_id = org_id <span class="kw">and</span> user_id = caller <span class="kw">and</span> role = <span class="str">'owner'</span>
+  ) <span class="kw">then</span>
+    <span class="kw">raise exception</span> <span class="str">'only the owner may transfer ownership'</span>;
+  <span class="kw">end if</span>;
+
+  <span class="cm">-- 3. validate the target</span>
+  <span class="kw">if not exists</span> (
+    <span class="kw">select</span> 1 <span class="kw">from</span> organization_members
+    <span class="kw">where</span> organization_id = org_id <span class="kw">and</span> user_id = new_owner
+  ) <span class="kw">then</span>
+    <span class="kw">raise exception</span> <span class="str">'the new owner must already be a member'</span>;
+  <span class="kw">end if</span>;
+
+  <span class="cm">-- 4. act -- one body is one transaction; demote before promoting</span>
+  <span class="kw">update</span> organization_members <span class="kw">set</span> role = <span class="str">'admin'</span>
+   <span class="kw">where</span> organization_id = org_id <span class="kw">and</span> user_id = caller;
+
+  <span class="kw">update</span> organization_members <span class="kw">set</span> role = <span class="str">'owner'</span>
+   <span class="kw">where</span> organization_id = org_id <span class="kw">and</span> user_id = new_owner;
+
+  <span class="kw">update</span> organizations <span class="kw">set</span> owner_id = new_owner <span class="kw">where</span> id = org_id;
+<span class="kw">end</span>;
+$$;</pre>
+    </div>
+
+    <h3>Why each step is there</h3>
+
+    <p>
+      <strong>Authenticate.</strong> A definer function runs as its owner. An unauthenticated
+      caller who reaches the body is executing as a privileged role with a null
+      <code>auth.uid()</code> — so every <code>where user_id = auth.uid()</code> silently
+      matches nothing and every <code>if not exists</code> takes the wrong branch.
+    </p>
+
+    <p>
+      <strong>Authorise.</strong> This is the step that gets dropped, because the function's
+      <em>name</em> sounds like it implies the check. Note that it correlates
+      <code>org_id</code> — a check of "is the caller an owner" without the organization
+      would let the owner of any tenant seize any other. That is the
+      <a href="../supabase-rls-role-hierarchies/">role-hierarchy bug</a>, relocated somewhere
+      no policy is watching.
+    </p>
+
+    <p>
+      <strong>Validate.</strong> Promoting a non-member would let an owner add a stranger to
+      the organization as a side effect of an action called something else. Every argument is
+      attacker-supplied, including the ones that look structural.
+    </p>
+
+    <p>
+      <strong>Act.</strong> A function body is one transaction, so the three writes commit
+      together or not at all.
+    </p>
+
+    <h2>The two mistakes that turn a helper into an escalation</h2>
+
+    <h3><code>set search_path</code> is not optional</h3>
+
+    <p>
+      Without it, a definer function resolves unqualified names using the <em>caller's</em>
+      <code>search_path</code>. A caller who can create objects in a schema earlier on that
+      path can shadow a table or function your body references, and have their version run
+      with the owner's privileges. Pin it on every definer function you write.
+    </p>
+
+    <h3>The <code>EXECUTE</code> grant is the access control</h3>
+
+    <div class="warn">
+      <span class="warn-label">Default is wide open</span>
+      <p>
+        Postgres grants <code>EXECUTE</code> to <code>PUBLIC</code> by default, and on
+        Supabase <code>PUBLIC</code> includes <code>anon</code>. A definer function you
+        forgot to revoke is an unauthenticated privilege escalation.
+      </p>
+    </div>
+
+    <div class="snippet">
+      <div class="snippet-bar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="filename">schema.sql</span>
+      </div>
+<pre><span class="kw">revoke execute on function</span> <span class="fn">public.transfer_ownership</span>(uuid, uuid) <span class="kw">from</span> public, anon;
+<span class="kw">grant  execute on function</span> <span class="fn">public.transfer_ownership</span>(uuid, uuid) <span class="kw">to</span> authenticated;</pre>
+    </div>
+
+    <h2>Constraints outrank code</h2>
+
+    <p>
+      Policies protect you from your users. Constraints protect you from your own server-side
+      code, which runs with RLS switched off. If an invariant must hold no matter what, it
+      belongs in the schema:
+    </p>
+
+    <div class="snippet">
+      <div class="snippet-bar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="filename">schema.sql</span>
+      </div>
+<pre><span class="cm">-- at most one owner per org, enforced even against the service role</span>
+<span class="kw">create unique index</span> one_owner_per_org
+  <span class="kw">on</span> organization_members (organization_id)
+  <span class="kw">where</span> role = <span class="str">'owner'</span>;</pre>
+    </div>
+
+    <p>
+      This also dictates the write order in the function above: the partial unique index
+      means promoting the new owner before demoting the old one would collide.
+    </p>
+
+    <h2>When it really is the service role</h2>
+
+    <p>
+      Some work has no user behind it — Stripe webhooks, nightly jobs, migrations. That's
+      what the service role is for, and it bypasses RLS entirely.
+    </p>
+
+    <ul>
+      <li><strong>The key never reaches the browser.</strong> Not in <code>NEXT_PUBLIC_*</code>, not in a client component, not in an edge function that echoes its environment.</li>
+      <li><strong>Every route using it authenticates and authorises first,</strong> in application code, because nothing below is going to. A service-role handler that trusts its input is an open database with a URL.</li>
+      <li><strong>Scope it to the narrowest possible endpoint.</strong> One route that does one thing beats a general-purpose admin endpoint that takes a table name.</li>
+    </ul>
+
+    <h2>What to test</h2>
+
+    <p>
+      Once an operation moves into a function, the assertions that matter are the ones
+      proving it restated everything it gave up: an admin can't call it, a member can't, an
+      outsider can't, the owner of a <em>different</em> organization can't, an anonymous
+      caller can't reach the body at all, a failed attempt leaves no partial state, and even
+      the service role can't violate the constraint.
+    </p>
+
+    <p>
+      Then delete the authorisation block and re-run. On the function above that fails five
+      separate assertions, including a member promoting themselves and one tenant's owner
+      seizing another. Five failures from deleting six lines is a fair measure of how much a
+      definer function is carrying.
+    </p>
+
+  </div>
+
+  <div class="article-cta">
+    <div class="cta-eyebrow">Built on these patterns</div>
+    <h2>Keystone — multi-tenant, correct from the first commit</h2>
+    <p>
+      A Next.js + Supabase B2B starter kit with organizations, roles, invites, and per-org
+      row-level security already wired up and audited. One-time payment, full source,
+      unlimited projects.
+    </p>
+    <a class="btn btn-accent" href="../../keystone/">See what's inside — $49</a>
+    <a class="btn btn-ghost" href="../">More guides</a>
+  </div>
+
+  <div class="article-nav">
+    <a href="../">← All guides</a>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap footer-inner">
+    <div class="footer-brand">Scaffold</div>
+    <div class="footer-links">
+      <a href="../">Guides</a>
+      <a href="../../keystone/">Keystone</a>
+      <a href="../../">Home</a>
+    </div>
+  </div>
+</footer>
+
+<script src="../../assets/site.js"></script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "When RLS can't express it: security definer done right",
+  "description": "When an operation can't be expressed as a row-level security policy, it becomes a security definer function — and every guarantee RLS gave you has to be restated by hand, in order.",
+  "image": "https://keystone-landing-cyy.pages.dev/assets/og-guide-definer.jpg",
+  "datePublished": "2026-09-01",
+  "dateModified": "2026-09-01",
+  "author": { "@type": "Organization", "name": "Scaffold" },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Scaffold",
+    "logo": { "@type": "ImageObject", "url": "https://keystone-landing-cyy.pages.dev/assets/icon-512.png" }
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://keystone-landing-cyy.pages.dev/guides/postgres-security-definer-boundaries/"
+  },
+  "about": [
+    { "@type": "Thing", "name": "PostgreSQL" },
+    { "@type": "Thing", "name": "Database security" },
+    { "@type": "Thing", "name": "Supabase" }
+  ],
+  "proficiencyLevel": "Intermediate"
+}
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Scaffold", "item": "https://keystone-landing-cyy.pages.dev/" },
+    { "@type": "ListItem", "position": 2, "name": "Guides", "item": "https://keystone-landing-cyy.pages.dev/guides/" },
+    { "@type": "ListItem", "position": 3, "name": "Security definer boundaries" }
+  ]
+}
+</script>
+
+</body>
+</html>

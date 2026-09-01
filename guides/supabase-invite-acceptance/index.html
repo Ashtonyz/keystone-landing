@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Supabase invite acceptance: why it can't be an RLS policy</title>
+<meta name="description" content="Accepting an invite to an organization can't be expressed as a row-level security policy. Four holes in the tempting version, and the security definer function that closes them.">
+<link rel="canonical" href="https://keystone-landing-cyy.pages.dev/guides/supabase-invite-acceptance/">
+<meta property="og:title" content="Why invite acceptance can't be an RLS policy">
+<meta property="og:description" content="Four holes in the tempting version, and the security definer function that closes them.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://keystone-landing-cyy.pages.dev/guides/supabase-invite-acceptance/">
+<meta property="og:site_name" content="Scaffold">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://keystone-landing-cyy.pages.dev/assets/og-guide-invites.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Supabase invite acceptance — the trust boundary.">
+<meta property="article:published_time" content="2026-09-01">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Why invite acceptance can't be an RLS policy">
+<meta name="twitter:description" content="Four holes in the tempting version, and the security definer function that closes them.">
+<meta name="twitter:image" content="https://keystone-landing-cyy.pages.dev/assets/og-guide-invites.jpg">
+<meta name="theme-color" content="#0a0a0c">
+<link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="manifest" href="../../site.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../assets/base.css">
+<link rel="stylesheet" href="../../assets/guides.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <a class="nav-brand" href="../../">
+      <span class="mark">◆</span> SCAFFOLD
+    </a>
+    <div class="nav-links">
+      <a href="../">Guides</a>
+      <a href="../../keystone/">Keystone</a>
+      <a href="../../#products">Products</a>
+    </div>
+    <div class="nav-right">
+      <a class="btn btn-accent btn-sm" href="../../keystone/">Get Keystone</a>
+    </div>
+  </div>
+</header>
+
+<div class="wrap article">
+  <div class="article-head">
+    <div class="article-eyebrow">Guide · Postgres RLS</div>
+    <h1>Why invite acceptance can't be an RLS policy</h1>
+    <p class="article-standfirst">
+      Letting an outsider into a tenant is the one write in a multi-tenant app that
+      legitimately crosses the boundary everything else defends. RLS is structurally unable
+      to authorise it, and every attempt to make it fit leaks.
+    </p>
+    <div class="article-byline">Published 1 September 2026 · 8 min read</div>
+  </div>
+
+  <div class="prose">
+
+    <p>
+      Row-level security answers one question well: <em>may this caller write this row?</em>
+      Invite acceptance asks something else entirely — <em>is this caller the person a
+      message sent to a third-party mail server was addressed to?</em> Postgres has no way
+      to know that, so any policy you write is approximating it.
+    </p>
+
+    <h2>The tempting version</h2>
+
+    <div class="snippet">
+      <div class="snippet-bar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="filename">schema.sql</span>
+        <span class="tag bad">✕ exploitable</span>
+      </div>
+<pre><span class="kw">create policy</span> <span class="str">"join if you were invited"</span>
+<span class="kw">on</span> organization_members <span class="kw">for insert</span>
+<span class="kw">with check</span> (
+  user_id = <span class="fn">auth.uid</span>()
+  <span class="kw">and exists</span> (
+    <span class="kw">select</span> 1 <span class="kw">from</span> invites
+    <span class="kw">where</span> organization_id = organization_members.organization_id
+      <span class="kw">and</span> email = <span class="fn">auth.jwt</span>() -&gt;&gt; <span class="str">'email'</span>
+  )
+);</pre>
+    </div>
+
+    <p>It scopes the tenant, so it looks like a fix. Four holes, and they compound:</p>
+
+    <ul>
+      <li>
+        <strong>The invitee picks their own rank.</strong> Nothing constrains
+        <code>role</code>, so someone invited as a member inserts themselves as
+        <code>owner</code>. <a href="../supabase-rls-tenant-isolation/">The tenant-isolation
+        bug</a>, re-entering through the door marked <em>invited</em>.
+      </li>
+      <li>
+        <strong>The invite is never consumed.</strong> A policy authorises a row; it can't
+        mark the invite used in the same breath. One invite becomes unlimited joins, and a
+        revoked-then-resent invite is still live.
+      </li>
+      <li>
+        <strong>Unverified email is treated as identity.</strong> If the provider hasn't
+        confirmed the address, <code>auth.jwt() ->> 'email'</code> is just a string the user
+        typed at signup. Type a colleague's address, inherit their invites.
+      </li>
+      <li>
+        <strong><code>expires_at</code> is unenforced</strong> unless every policy remembers
+        it, and one of them eventually won't.
+      </li>
+    </ul>
+
+    <h2>The fix: a function is the trust boundary</h2>
+
+    <p>
+      Acceptance is not a row the client writes. It is a function that runs as its owner,
+      does what the caller may not, and takes responsibility for every check RLS would
+      otherwise have made.
+    </p>
+
+    <div class="snippet">
+      <div class="snippet-bar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="filename">schema.sql</span>
+        <span class="tag good">✓ fixed</span>
+      </div>
+<pre><span class="kw">create or replace function</span> <span class="fn">public.accept_invite</span>(invite_token text)
+<span class="kw">returns</span> uuid
+<span class="kw">language</span> plpgsql <span class="kw">security definer</span>
+<span class="kw">set</span> search_path = public
+<span class="kw">as</span> $$
+<span class="kw">declare</span>
+  claimed invites;
+  caller_email text;
+<span class="kw">begin</span>
+  <span class="kw">if</span> <span class="fn">auth.uid</span>() <span class="kw">is null then</span>
+    <span class="kw">raise exception</span> <span class="str">'not authenticated'</span>;
+  <span class="kw">end if</span>;
+
+  <span class="cm">-- an unverified address is a claim, not a fact</span>
+  <span class="kw">if</span> <span class="fn">coalesce</span>((<span class="fn">auth.jwt</span>() -&gt;&gt; <span class="str">'email_verified'</span>)::boolean, <span class="kw">false</span>) <span class="kw">is not true then</span>
+    <span class="kw">raise exception</span> <span class="str">'email not verified'</span>;
+  <span class="kw">end if</span>;
+  caller_email := <span class="fn">lower</span>(<span class="fn">auth.jwt</span>() -&gt;&gt; <span class="str">'email'</span>);
+
+  <span class="cm">-- claim and validate in ONE statement</span>
+  <span class="kw">update</span> invites
+     <span class="kw">set</span> accepted_at = <span class="fn">now</span>(), accepted_by = <span class="fn">auth.uid</span>()
+   <span class="kw">where</span> token        = invite_token
+     <span class="kw">and</span> accepted_at  <span class="kw">is null</span>
+     <span class="kw">and</span> expires_at   &gt; <span class="fn">now</span>()
+     <span class="kw">and</span> <span class="fn">lower</span>(email) = caller_email
+  <span class="kw">returning</span> * <span class="kw">into</span> claimed;
+
+  <span class="kw">if not found then</span>
+    <span class="kw">raise exception</span> <span class="str">'invite is invalid, expired, already used, or not for this account'</span>;
+  <span class="kw">end if</span>;
+
+  <span class="kw">insert into</span> organization_members (organization_id, user_id, role)
+  <span class="kw">values</span> (claimed.organization_id, <span class="fn">auth.uid</span>(), claimed.role)
+  <span class="kw">on conflict</span> (organization_id, user_id) <span class="kw">do nothing</span>;
+
+  <span class="kw">return</span> claimed.organization_id;
+<span class="kw">end</span>;
+$$;
+
+<span class="kw">revoke execute on function</span> <span class="fn">public.accept_invite</span>(text) <span class="kw">from</span> public, anon;
+<span class="kw">grant  execute on function</span> <span class="fn">public.accept_invite</span>(text) <span class="kw">to</span> authenticated;</pre>
+    </div>
+
+    <p>
+      Note what is <em>absent</em> from the schema around it: no <code>SELECT</code> policy
+      letting an invitee read their own invite, and no <code>INSERT</code> policy on
+      <code>organization_members</code> for joining. The invitee holds a token from their
+      email; the table stays shut.
+    </p>
+
+    <h2>Four things inside doing the real work</h2>
+
+    <h3>Claim and validate in one statement</h3>
+
+    <p>
+      A <code>select</code>, then checks, then an <code>update</code> is a check-then-act
+      race: two concurrent calls both observe <code>accepted_at is null</code> and both
+      proceed. Folding every condition into the <code>where</code> clause of the write makes
+      the database's row lock the thing enforcing single use.
+    </p>
+
+    <blockquote>
+      <p>Validation belongs in the statement that claims, not before it.</p>
+    </blockquote>
+
+    <h3>The <code>coalesce</code> is the whole guard</h3>
+
+    <p>
+      A token with no <code>email_verified</code> claim yields null, and
+      <code>if null then</code> does not raise — it falls through, silently granting exactly
+      what the check exists to prevent. This is the line people omit, and its absence is
+      invisible in every happy-path test.
+    </p>
+
+    <h3>The rank comes from the invite</h3>
+
+    <p>
+      <code>role</code> is read off the claimed row, never from an argument. Add
+      <code>check (role &lt; 'owner')</code> to the invites table and no invite capable of
+      minting an owner can exist at all — a constraint, not a policy, so it holds even
+      against the service role. Ownership transfer can't be laundered through the invite flow.
+    </p>
+
+    <h3>One error message for every failure</h3>
+
+    <p>
+      Distinguishing <em>expired</em> from <em>not for you</em> from <em>no such token</em>
+      turns the function into an oracle: an attacker learns which addresses were invited to
+      which organizations by reading the error text. One message costs nothing and closes it.
+    </p>
+
+    <h2>The token</h2>
+
+    <p>
+      Don't use the invite's <code>id</code>. Ids leak into logs, URLs, error messages, and
+      support tickets, and are often enumerable. Generate a separate secret:
+    </p>
+
+    <div class="snippet">
+      <div class="snippet-bar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="filename">schema.sql</span>
+      </div>
+<pre>token text <span class="kw">not null unique default</span>
+  <span class="fn">replace</span>(<span class="fn">gen_random_uuid</span>()::text, <span class="str">'-'</span>, <span class="str">''</span>)
+  || <span class="fn">replace</span>(<span class="fn">gen_random_uuid</span>()::text, <span class="str">'-'</span>, <span class="str">''</span>)</pre>
+    </div>
+
+    <p>
+      Two v4 uuids is roughly 244 bits and needs no extension. With
+      <code>pgcrypto</code> enabled, <code>encode(gen_random_bytes(32),'hex')</code> is the
+      more idiomatic equivalent.
+    </p>
+
+    <h2>The shortcut that only half works</h2>
+
+    <p>
+      A common alternative is a trigger on <code>auth.users</code> that auto-joins any
+      pending invites matching the new user's email at signup. It is less code and it does
+      work — for people who don't have an account yet.
+    </p>
+
+    <div class="warn">
+      <span class="warn-label">The gap</span>
+      <p>
+        A signup trigger only ever fires for brand-new accounts. Invite an already-registered
+        colleague and they silently never join — no error, no membership, and nothing in the
+        UI to explain it.
+      </p>
+    </div>
+
+    <p>
+      The function above works for both cases, because it keys off the current session
+      rather than the moment of account creation.
+    </p>
+
+    <h2>Operational notes</h2>
+
+    <ul>
+      <li><strong>Resending</strong> should mint a new token and expire the old one, not extend the existing row. A token that has sat in an inbox for a month has also sat in a backup, a log, and possibly a support ticket.</li>
+      <li><strong>Rate-limit the RPC.</strong> Nothing here stops an attacker calling <code>accept_invite</code> in a loop. The tokens are far too large to guess, but attempts should still be capped at the edge.</li>
+      <li><strong>Who can read invites:</strong> admins of the organization, and nobody else. The table is a roster of who has been asked to join what — treat it as data, not plumbing.</li>
+    </ul>
+
+  </div>
+
+  <div class="article-cta">
+    <div class="cta-eyebrow">Built on these patterns</div>
+    <h2>Keystone — multi-tenant, correct from the first commit</h2>
+    <p>
+      A Next.js + Supabase B2B starter kit with organizations, roles, and an invite flow
+      already wired up and audited. One-time payment, full source, unlimited projects.
+    </p>
+    <a class="btn btn-accent" href="../../keystone/">See what's inside — $49</a>
+    <a class="btn btn-ghost" href="../">More guides</a>
+  </div>
+
+  <div class="article-nav">
+    <a href="../">← All guides</a>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap footer-inner">
+    <div class="footer-brand">Scaffold</div>
+    <div class="footer-links">
+      <a href="../">Guides</a>
+      <a href="../../keystone/">Keystone</a>
+      <a href="../../">Home</a>
+    </div>
+  </div>
+</footer>
+
+<script src="../../assets/site.js"></script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "Why invite acceptance can't be an RLS policy",
+  "description": "Accepting an invite to an organization can't be expressed as a row-level security policy. Four holes in the tempting version, and the security definer function that closes them.",
+  "image": "https://keystone-landing-cyy.pages.dev/assets/og-guide-invites.jpg",
+  "datePublished": "2026-09-01",
+  "dateModified": "2026-09-01",
+  "author": { "@type": "Organization", "name": "Scaffold" },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Scaffold",
+    "logo": { "@type": "ImageObject", "url": "https://keystone-landing-cyy.pages.dev/assets/icon-512.png" }
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://keystone-landing-cyy.pages.dev/guides/supabase-invite-acceptance/"
+  },
+  "about": [
+    { "@type": "Thing", "name": "PostgreSQL row-level security" },
+    { "@type": "Thing", "name": "Supabase" },
+    { "@type": "Thing", "name": "Multi-tenant architecture" }
+  ],
+  "proficiencyLevel": "Intermediate"
+}
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Scaffold", "item": "https://keystone-landing-cyy.pages.dev/" },
+    { "@type": "ListItem", "position": 2, "name": "Guides", "item": "https://keystone-landing-cyy.pages.dev/guides/" },
+    { "@type": "ListItem", "position": 3, "name": "Invite acceptance" }
+  ]
+}
+</script>
+
+</body>
+</html>
