@@ -130,6 +130,24 @@
       </a>
 
     </div>
+
+    <div class="tool-cta reveal">
+      <div class="cta-eyebrow">Free and open source</div>
+      <h2>Test your own policies, not just read about mine</h2>
+      <p>
+        Every guide here ends with assertions worth writing. <strong>rls-test-harness</strong>
+        is the thing that runs them: real Postgres, as a real user, with the
+        <code>auth.uid()</code> path your app actually uses. It matters that it runs as a
+        non-superuser, because <code>postgres</code> bypasses row-level security entirely and
+        a suite that connects as the owner passes no matter how broken the policy is.
+      </p>
+      <p>
+        No Docker, no cloud project, one dependency. Point it at your schema and a full run
+        takes about three seconds. MIT licensed.
+      </p>
+      <a class="btn btn-accent" href="https://github.com/Ashtonyz/rls-test-harness">Get it on GitHub</a>
+      <a class="btn btn-ghost" href="supabase-rls-tenant-isolation/">See the worked example</a>
+    </div>
   </div>
 </section>
 

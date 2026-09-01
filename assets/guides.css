@@ -163,6 +163,30 @@ a.guide-row:hover .guide-title{ color:var(--accent); }
   margin-bottom:7px;
 }
 
+/* Affirmative sibling of .warn, for pointing at the test harness. Deliberately
+   not .warn: that one is red, and a red box reads as "you have a problem here"
+   rather than "here is the tool". */
+.toolbox{
+  margin:28px 0;
+  padding:18px 22px;
+  border:1px solid var(--accent-line);
+  border-left-width:2px;
+  background:var(--accent-soft);
+  border-radius:0 6px 6px 0;
+}
+.toolbox p{ margin:0; color:var(--text); font-size:16px; }
+.toolbox p + p{ margin-top:10px; }
+.toolbox .toolbox-label{
+  display:block;
+  font-family:'IBM Plex Mono', monospace;
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:0.06em;
+  color:var(--accent);
+  margin-bottom:7px;
+}
+.toolbox a{ color:var(--accent); }
+
 /* Code blocks reuse the editor chrome from the Keystone page */
 .snippet{
   margin:26px 0;
@@ -260,6 +284,32 @@ a.guide-row:hover .guide-title{ color:var(--accent); }
   margin:0 0 20px;
 }
 .article-cta .btn{ margin-right:10px; }
+
+/* The harness callout on the guides index. Full wrap width rather than the
+   72ch of .article-cta, so it lines up with the guide list above it. */
+.tool-cta{
+  margin-top:44px;
+  border:1px solid var(--accent-line);
+  border-radius:12px;
+  background:linear-gradient(160deg, var(--accent-soft), var(--bg-inset));
+  padding:30px;
+}
+.tool-cta .cta-eyebrow{
+  font-family:'IBM Plex Mono', monospace;
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:0.06em;
+  color:var(--accent);
+  margin-bottom:10px;
+}
+.tool-cta h2{ font-size:21px; margin:0 0 10px; }
+.tool-cta p{
+  color:var(--text-dim);
+  font-size:15px;
+  line-height:1.65;
+  margin:0 0 20px;
+  max-width:68ch;
+}
 
 .article-nav{
   max-width:72ch;

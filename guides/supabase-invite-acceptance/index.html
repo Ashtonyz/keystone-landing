@@ -278,6 +278,20 @@ $$;
       <li><strong>Who can read invites:</strong> admins of the organization, and nobody else. The table is a roster of who has been asked to join what — treat it as data, not plumbing.</li>
     </ul>
 
+
+    <div class="toolbox">
+      <span class="toolbox-label">Test it against real Postgres</span>
+      <p>
+        An invite flow is worth testing from the attacker's side: a stale token, a token
+        for someone else's email, a second redemption of one already used. Those only mean
+        something if the database enforces its policies while the tests run, as a real user
+        rather than as <code>postgres</code>, which bypasses row-level security entirely.
+        <a href="https://github.com/Ashtonyz/rls-test-harness">rls-test-harness</a> is a
+        free, MIT-licensed setup that does that: point it at your own schema and get
+        results in about three seconds, with no Docker and no cloud project.
+      </p>
+    </div>
+
   </div>
 
   <div class="article-cta">

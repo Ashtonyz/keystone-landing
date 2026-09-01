@@ -226,6 +226,19 @@ $$;</pre>
       failures from one plausible-looking simplification is the point.
     </p>
 
+
+    <div class="toolbox">
+      <span class="toolbox-label">Test it against real Postgres</span>
+      <p>
+        Assertions like these only mean something if the database actually enforces the
+        policies while they run, as a real user rather than as <code>postgres</code>, which
+        bypasses row-level security entirely.
+        <a href="https://github.com/Ashtonyz/rls-test-harness">rls-test-harness</a> is a
+        free, MIT-licensed setup that does that: point it at your own schema and get
+        results in about three seconds, with no Docker and no cloud project.
+      </p>
+    </div>
+
     <h2>Adapting it</h2>
 
     <ul>

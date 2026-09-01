@@ -270,6 +270,22 @@ $$;
       tests pass while the policy leaks.
     </p>
 
+    <div class="toolbox">
+      <span class="toolbox-label">Run it yourself</span>
+      <p>
+        This whole section is packaged as a repository you can clone:
+        <a href="https://github.com/Ashtonyz/rls-test-harness">rls-test-harness</a>.
+        It runs the schema above against real Postgres as a non-superuser, with 13
+        assertions covering the fix and each of the attacks. No Docker and no cloud
+        project, because it uses an in-process WASM build of Postgres, so a full run
+        takes about three seconds.
+      </p>
+      <p>
+        It also ships a <code>your-schema/</code> directory for pointing the same
+        harness at your own policies, plus the audit checklist. MIT licensed.
+      </p>
+    </div>
+
     <h3>Superusers bypass RLS unconditionally</h3>
 
     <p>
