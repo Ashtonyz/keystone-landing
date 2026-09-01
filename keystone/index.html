@@ -32,6 +32,7 @@
 <link rel="stylesheet" href="../assets/keystone.css">
 </head>
 <body>
+<a class="skip-link" href="#main">Skip to content</a>
 
 <header class="nav">
   <div class="nav-inner">
@@ -54,6 +55,8 @@
   </div>
 </header>
 
+<main id="main">
+
 <section class="hero" id="top">
   <div class="wrap">
     <div class="hero-eyebrow">Next.js · Supabase · Vercel starter kit</div>
@@ -69,6 +72,8 @@
       <div class="diagram-titlebar">
         <span class="dot"></span><span class="dot"></span><span class="dot"></span>
         <span class="label">rls_boundary.sql — live query trace</span>
+        <button type="button" class="diagram-toggle" id="diagramToggle"
+                aria-controls="rlsDiagram">Play</button>
       </div>
       <div class="rls-diagram" id="rlsDiagram">
         <div class="track track-allow"></div>
@@ -273,6 +278,8 @@
     </div>
   </div>
 </section>
+
+</main>
 
 <footer>
   <div class="wrap footer-inner">

@@ -11,7 +11,11 @@
   --border-soft:#1e1e23;
   --text:#f5f3ee;
   --text-dim:#a3a3ad;
-  --text-faint:#6b6b74;
+  /* Lightened from #6b6b74, which sat at 3.79:1 on --bg and 3.42:1 on
+     --bg-raised — below the WCAG AA 4.5:1 floor for body-size text. This
+     clears it on both (5.33:1 and 4.81:1) and stays a clear step below
+     --text-dim, so the three-tier hierarchy is unchanged. */
+  --text-faint:#83838c;
   --accent:#eeb35c;
   --accent-soft:rgba(238,179,92,0.14);
   --accent-line:rgba(238,179,92,0.45);
@@ -77,6 +81,26 @@ code, .mono{ font-family:'IBM Plex Mono', monospace; }
 }
 @media (prefers-reduced-motion: reduce){
   .reveal, .stagger-item{ opacity:1 !important; transform:none !important; transition:none !important; }
+}
+
+/* ---------- skip link ---------- */
+/* Off-screen until focused, then pinned above the sticky nav (z-index 30). */
+.skip-link{
+  position:absolute;
+  left:-9999px;
+  top:0;
+  z-index:100;
+  background:var(--accent);
+  color:#171008;
+  font-family:'IBM Plex Sans', sans-serif;
+  font-weight:600;
+  font-size:14px;
+  padding:12px 20px;
+  border-radius:0 0 6px 0;
+  text-decoration:none;
+}
+.skip-link:focus{
+  left:0;
 }
 
 /* ---------- nav ---------- */
