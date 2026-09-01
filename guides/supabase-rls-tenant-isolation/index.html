@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Supabase RLS: the insert-policy mistake that breaks tenant isolation</title>
+<meta name="description" content="A Supabase row-level security policy that checks user_id = auth.uid() without constraining organization_id lets any authenticated user join any organization as owner. The bug, the fix, and how to prove it's fixed.">
+<link rel="canonical" href="https://keystone-landing-cyy.pages.dev/guides/supabase-rls-tenant-isolation/">
+<meta property="og:title" content="The Supabase RLS mistake that lets any user join any organization">
+<meta property="og:description" content="It checks who is writing the row, but never which tenant. The bug, the fix, and how to prove your policies actually hold.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://keystone-landing-cyy.pages.dev/guides/supabase-rls-tenant-isolation/">
+<meta property="og:site_name" content="Scaffold">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://keystone-landing-cyy.pages.dev/assets/og-guide-rls.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Supabase RLS tenant isolation — the insert-policy bug.">
+<meta property="article:published_time" content="2026-09-01">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="The Supabase RLS mistake that lets any user join any organization">
+<meta name="twitter:description" content="It checks who is writing the row, but never which tenant. The bug, the fix, and how to prove your policies actually hold.">
+<meta name="twitter:image" content="https://keystone-landing-cyy.pages.dev/assets/og-guide-rls.jpg">
+<meta name="theme-color" content="#0a0a0c">
+<link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="manifest" href="../../site.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../assets/base.css">
+<link rel="stylesheet" href="../../assets/guides.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <a class="nav-brand" href="../../">
+      <span class="mark">◆</span> SCAFFOLD
+    </a>
+    <div class="nav-links">
+      <a href="../">Guides</a>
+      <a href="../../keystone/">Keystone</a>
+      <a href="../../#products">Products</a>
+    </div>
+    <div class="nav-right">
+      <a class="btn btn-accent btn-sm" href="../../keystone/">Get Keystone</a>
+    </div>
+  </div>
+</header>
+
+<div class="wrap article">
+  <div class="article-head">
+    <div class="article-eyebrow">Guide · Postgres RLS</div>
+    <h1>The Supabase RLS mistake that lets any user join any organization</h1>
+    <p class="article-standfirst">
+      It is four lines long, it reads correctly out loud, and it appears in a lot of
+      multi-tenant Supabase schemas. It checks <em>who</em> is writing the row and never
+      checks <em>which tenant</em> the row belongs to.
+    </p>
+    <div class="article-byline">Published 1 September 2026 · 9 min read</div>
+  </div>
+
+  <div class="prose">
+
+    <p>
+      Nearly every B2B app converges on the same three tables: organizations, a membership
+      join table, and whatever the customer actually came for. Access is decided by
+      membership, row-level security enforces it in Postgres, and the whole thing is
+      genuinely more robust than checking permissions in application code — a missed
+      <code>where</code> clause in a route handler can't leak data past a policy.
+    </p>
+
+    <p>
+      That is exactly why the bug below is worth knowing about. It doesn't live in the
+      policies people scrutinise. It lives in the one nobody reads twice.
+    </p>
+
+    <h2>The schema</h2>
+
+    <p>
+      Standard shape. Organizations are the tenant boundary, membership decides who sees
+      what, and <code>projects</code> stands in for whatever your product's real resource is.
+    </p>
+
+    <div class="snippet">
+      <div class="snippet-bar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="filename">schema.sql</span>
+      </div>
+<pre><span class="kw">create table</span> organizations (
+  id        uuid <span class="kw">primary key default</span> <span class="fn">gen_random_uuid</span>(),
+  name      text <span class="kw">not null</span>,
+  owner_id  uuid <span class="kw">not null</span>
+);
+
+<span class="kw">create table</span> organization_members (
+  organization_id uuid <span class="kw">not null references</span> organizations(id) <span class="kw">on delete cascade</span>,
+  user_id         uuid <span class="kw">not null</span>,
+  role            text <span class="kw">not null default</span> <span class="str">'member'</span>,
+  <span class="kw">primary key</span> (organization_id, user_id)
+);
+
+<span class="kw">create table</span> projects (
+  id              uuid <span class="kw">primary key default</span> <span class="fn">gen_random_uuid</span>(),
+  organization_id uuid <span class="kw">not null references</span> organizations(id) <span class="kw">on delete cascade</span>,
+  name            text <span class="kw">not null</span>
+);</pre>
+    </div>
+
+    <p>
+      Reads are scoped through a helper. It needs <code>security definer</code> because a
+      policy on <code>organization_members</code> that queries
+      <code>organization_members</code> re-enters itself — Postgres raises
+      <em>"infinite recursion detected in policy for relation"</em>. Running the lookup as
+      the function's owner takes it out of the policy's reach and breaks the loop.
+    </p>
+
+    <div class="snippet">
+      <div class="snippet-bar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="filename">schema.sql</span>
+      </div>
+<pre><span class="kw">create or replace function</span> <span class="fn">public.user_org_ids</span>()
+<span class="kw">returns setof</span> uuid
+<span class="kw">language</span> sql <span class="kw">security definer stable</span>
+<span class="kw">set</span> search_path = public
+<span class="kw">as</span> $$
+  <span class="kw">select</span> organization_id <span class="kw">from</span> organization_members <span class="kw">where</span> user_id = <span class="fn">auth.uid</span>()
+$$;
+
+<span class="kw">create policy</span> <span class="str">"read projects in your orgs"</span>
+<span class="kw">on</span> projects <span class="kw">for select</span>
+<span class="kw">using</span> (organization_id <span class="kw">in</span> (<span class="kw">select</span> <span class="fn">public.user_org_ids</span>()));</pre>
+    </div>
+
+    <p>
+      So far this is fine. Every read of <code>projects</code> is filtered to organizations
+      the caller belongs to. Test it with two accounts and it behaves.
+    </p>
+
+    <h2>The policy that looks right</h2>
+
+    <p>
+      Somewhere you have to let a user become a member — at minimum, the person who just
+      created an organization needs a membership row in it. So you write the obvious policy:
+    </p>
+
+    <div class="snippet">
+      <div class="snippet-bar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="filename">schema.sql</span>
+        <span class="tag bad">✕ exploitable</span>
+      </div>
+<pre><span class="cm">-- checks who, never which org</span>
+<span class="kw">create policy</span> <span class="str">"users can insert their own membership"</span>
+<span class="kw">on</span> organization_members <span class="kw">for insert</span>
+<span class="kw">with check</span> (user_id = <span class="fn">auth.uid</span>());</pre>
+    </div>
+
+    <p>
+      Read it as a sentence: <em>"you may add a membership row as long as the row is about
+      you."</em> That sounds like a security check. It constrains <strong>who</strong> is
+      being added, and says nothing at all about <strong>which organization</strong> they
+      are being added to.
+    </p>
+
+    <p>
+      Organization ids are not secret. They travel in URLs, in API responses, in invite
+      links, in error messages, in support tickets. Assume any user has seen at least one
+      that isn't theirs.
+    </p>
+
+    <div class="warn">
+      <span class="warn-label">The exploit</span>
+      <p>Any authenticated user, from the browser, against any organization id they have ever seen.</p>
+    </div>
+
+    <div class="snippet">
+      <div class="snippet-bar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="filename">console</span>
+      </div>
+<pre><span class="kw">await</span> supabase.from(<span class="str">'organization_members'</span>).insert({
+  organization_id: someOtherOrgId,
+  user_id: myUserId,
+  role: <span class="str">'owner'</span>,
+})</pre>
+    </div>
+
+    <p>
+      The policy passes: <code>user_id</code> really is <code>auth.uid()</code>. They are now
+      an owner of a tenant they have no relationship to.
+    </p>
+
+    <h2>Why the read policies don't save you</h2>
+
+    <p>
+      This is the part that makes it dangerous rather than merely wrong. Every
+      <code>SELECT</code> policy in the schema keys off membership — that was the whole
+      design. So the moment the attacker owns a membership row, those policies start
+      working <em>for</em> them:
+    </p>
+
+    <blockquote>
+      <p>
+        The read policies were never broken. They were asked the wrong question, and they
+        answered it correctly.
+      </p>
+    </blockquote>
+
+    <p>
+      Projects, documents, members, billing records — anything scoped by
+      <code>user_org_ids()</code> is now in scope, because the attacker genuinely is a
+      member as far as Postgres is concerned. One <code>INSERT</code> converts into read
+      access across the entire tenant, and often write access too. Because <code>role</code>
+      was unconstrained, they took <code>'owner'</code> on the way in.
+    </p>
+
+    <p>
+      Nothing in your logs looks unusual. There is no failed request, no permission error,
+      no anomalous query — just a membership row that shouldn't exist, and a user quietly
+      reading someone else's data through policies working exactly as written.
+    </p>
+
+    <h2>The fix</h2>
+
+    <p>
+      Constrain the tenant, not just the actor. The only legitimate reason a client inserts
+      a membership row is an owner bootstrapping the organization they just created.
+      Everything else — invite acceptance, an admin adding a colleague — belongs
+      server-side, in a <code>security definer</code> function or behind the service role,
+      where RLS is not the thing doing the checking.
+    </p>
+
+    <div class="snippet">
+      <div class="snippet-bar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="filename">schema.sql</span>
+        <span class="tag good">✓ fixed</span>
+      </div>
+<pre><span class="kw">create policy</span> <span class="str">"owner bootstraps their own membership"</span>
+<span class="kw">on</span> organization_members <span class="kw">for insert</span>
+<span class="kw">with check</span> (
+  user_id = <span class="fn">auth.uid</span>()
+  <span class="kw">and</span> role = <span class="str">'owner'</span>
+  <span class="kw">and</span> organization_id <span class="kw">in</span> (
+    <span class="kw">select</span> id <span class="kw">from</span> organizations <span class="kw">where</span> owner_id = <span class="fn">auth.uid</span>()
+  )
+);</pre>
+    </div>
+
+    <p>Three clauses, three distinct jobs, and dropping any one reopens a hole:</p>
+
+    <ul>
+      <li><code>user_id = auth.uid()</code> — the row is about you, so you can't add anyone else.</li>
+      <li><code>role = 'owner'</code> — you aren't inventing a privilege level for yourself on the way in.</li>
+      <li><code>organization_id in (...)</code> — the organization is one you actually own. This is the clause that was missing.</li>
+    </ul>
+
+    <h2>How do you know it's fixed?</h2>
+
+    <p>
+      This is the part that usually gets skipped, and it matters more than the policy,
+      because a policy you haven't tested is a guess. There are two traps that make RLS
+      tests pass while the policy leaks.
+    </p>
+
+    <h3>Superusers bypass RLS unconditionally</h3>
+
+    <p>
+      If you connect with a <code>psql</code> connection string, or as the table owner, or
+      as <code>postgres</code>, <strong>every policy passes no matter how broken it is</strong>.
+      Row-level security simply does not apply to superusers, and
+      <code>alter table ... enable row level security</code> doesn't change that.
+    </p>
+
+    <p>
+      Tests have to run as a non-superuser, through the same <code>auth.uid()</code> path
+      your application uses. If your RLS test suite has never been run as
+      <code>authenticated</code>, it is not testing anything at all.
+    </p>
+
+    <h3>Denials are usually silent</h3>
+
+    <p>
+      This one bites people writing their first negative test. Which clause rejects you
+      determines what you observe:
+    </p>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>Rejected by</th><th>What you get</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>USING</code></td><td>Silence. The row was never visible, so the statement affects zero rows and reports success.</td></tr>
+          <tr><td><code>WITH CHECK</code></td><td>An error — <em>"new row violates row-level security policy"</em>.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      A blocked <code>SELECT</code> returns an empty result, not an exception. A blocked
+      <code>DELETE</code> removes nothing and tells you it succeeded. So:
+    </p>
+
+    <blockquote>
+      <p>
+        Never assert that something was blocked by checking a call didn't throw. Read the
+        data back and assert on what is actually there.
+      </p>
+    </blockquote>
+
+    <h3>Then break it on purpose</h3>
+
+    <p>
+      Put the vulnerable policy back and run your tests again. If nothing goes red, your
+      suite would not have caught the real thing either. On the schema above, reintroducing
+      the broken insert policy should fail the "cannot join an org you don't own" assertion
+      <em>and</em> a second assertion, because the attacker can now see a third tenant's
+      projects. That cascade is the blast radius, reproduced in a few seconds.
+    </p>
+
+    <p>
+      A test suite you have never watched fail is a decoration.
+    </p>
+
+    <h2>Two traps in the same neighbourhood</h2>
+
+    <h3><code>INSERT ... RETURNING</code> is also a read</h3>
+
+    <p>
+      <code>supabase-js</code> compiles <code>.insert().select()</code> into
+      <code>INSERT ... RETURNING</code>, and Postgres applies the <code>SELECT</code> policy
+      to the returned row. A user creating an organization is not yet a member of it, so a
+      membership-only read policy rejects the read-back — and the error says
+      <em>"new row violates row-level security policy"</em>, which reads like the insert was
+      refused rather than the row being returned. Give the organizations read policy an
+      <code>owner_id = auth.uid()</code> branch and it resolves.
+    </p>
+
+    <h3><code>UPDATE</code> needs both clauses spelled out</h3>
+
+    <p>
+      <code>USING</code> chooses which rows you may touch; <code>WITH CHECK</code> validates
+      the row you leave behind. Postgres reuses <code>USING</code> as the check when you omit
+      it, so the default is safe — but write both anyway. The day someone widens
+      <code>USING</code>, having the second clause in front of them is what prompts the
+      question of what a row is now allowed to become. Without it, an update can move a row
+      out of your tenant and into somebody else's.
+    </p>
+
+    <h2>The pattern behind the bug</h2>
+
+    <p>
+      It is worth naming, because once you can hear it you will catch it in policies nobody
+      has written yet:
+    </p>
+
+    <blockquote>
+      <p>A check that names the actor but not the boundary.</p>
+    </blockquote>
+
+    <p>
+      The insert policy above checks <em>who</em> but not <em>which tenant</em>. A role check
+      written as <code>exists (select 1 from organization_members where user_id = auth.uid()
+      and role = 'admin')</code> checks <em>what rank</em> but not <em>where it is held</em> —
+      making anyone who is an admin somewhere an admin everywhere. A sharing policy phrased
+      as "you may share what you can see" checks <em>visibility</em> but not
+      <em>authority</em>, so every recipient becomes a distributor.
+    </p>
+
+    <p>
+      Same shape every time. Read each policy aloud as a sentence and listen for the missing
+      half.
+    </p>
+
+  </div>
+
+  <div class="article-cta">
+    <div class="cta-eyebrow">From the makers of this guide</div>
+    <h2>Keystone — multi-tenant, correct from the first commit</h2>
+    <p>
+      A Next.js + Supabase B2B starter kit with organizations, invites, and per-org row-level
+      security already wired up and audited — including every fix in this article. One-time
+      payment, full source, unlimited projects.
+    </p>
+    <a class="btn btn-accent" href="../../keystone/">See what's inside — $49</a>
+    <a class="btn btn-ghost" href="../">More guides</a>
+  </div>
+
+  <div class="article-nav">
+    <a href="../">← All guides</a>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap footer-inner">
+    <div class="footer-brand">Scaffold</div>
+    <div class="footer-links">
+      <a href="../">Guides</a>
+      <a href="../../keystone/">Keystone</a>
+      <a href="../../">Home</a>
+    </div>
+  </div>
+</footer>
+
+<script src="../../assets/site.js"></script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "The Supabase RLS mistake that lets any user join any organization",
+  "description": "A Supabase row-level security policy that checks user_id = auth.uid() without constraining organization_id lets any authenticated user join any organization as owner. The bug, the fix, and how to prove it's fixed.",
+  "image": "https://keystone-landing-cyy.pages.dev/assets/og-guide-rls.jpg",
+  "datePublished": "2026-09-01",
+  "dateModified": "2026-09-01",
+  "author": { "@type": "Organization", "name": "Scaffold" },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Scaffold",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://keystone-landing-cyy.pages.dev/assets/icon-512.png"
+    }
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://keystone-landing-cyy.pages.dev/guides/supabase-rls-tenant-isolation/"
+  },
+  "about": [
+    { "@type": "Thing", "name": "PostgreSQL row-level security" },
+    { "@type": "Thing", "name": "Supabase" },
+    { "@type": "Thing", "name": "Multi-tenant architecture" }
+  ],
+  "proficiencyLevel": "Intermediate"
+}
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Scaffold", "item": "https://keystone-landing-cyy.pages.dev/" },
+    { "@type": "ListItem", "position": 2, "name": "Guides", "item": "https://keystone-landing-cyy.pages.dev/guides/" },
+    { "@type": "ListItem", "position": 3, "name": "Supabase RLS tenant isolation" }
+  ]
+}
+</script>
+
+</body>
+</html>

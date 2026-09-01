@@ -45,6 +45,7 @@
       <a href="#story">Security</a>
       <a href="#stack">Stack</a>
       <a href="#pricing">Pricing</a>
+      <a href="../guides/">Guides</a>
       <a href="../#products">All products</a>
     </div>
     <div class="nav-right">
@@ -171,6 +172,10 @@
         <span class="code-badge bad">✕ EXPLOITABLE</span>
         <p class="code-note">The insert policy on <code>organization_members</code> checked <em>who</em> was joining, but never <em>which organization</em>. Any authenticated user could grant themselves membership — including <code>role: 'owner'</code> — in any organization, just by knowing its id.</p>
         <p class="code-note"><span class="code-badge good" style="margin-top:14px;">✓ FIXED</span><br>The policy is scoped to organizations the caller actually owns — the only legitimate client-side path to create a membership row. Invite acceptance happens separately, server-side, via a trigger that bypasses RLS entirely.</p>
+        <p class="code-note" style="margin-top:18px;">
+          <a href="../guides/supabase-rls-tenant-isolation/" style="color:var(--accent);text-decoration:underline;text-underline-offset:3px;">Read the full write-up →</a>
+          <span style="color:var(--text-faint);"> the exploit, the blast radius, and how to prove your own policies hold.</span>
+        </p>
       </div>
 
       <div class="editor reveal">
@@ -274,6 +279,7 @@
     <div class="footer-brand">Scaffold / Keystone</div>
     <div class="footer-links">
       <a href="../">All products</a>
+      <a href="../guides/">Guides</a>
       <a href="https://ashtonlathams.gumroad.com/l/jemyec" target="_blank" rel="noopener">Get the kit</a>
       <a href="#top">Back to top</a>
     </div>

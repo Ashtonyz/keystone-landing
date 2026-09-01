@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guides — Postgres row-level security, multi-tenancy, and Supabase</title>
+<meta name="description" content="Practical guides on Postgres row-level security and multi-tenant Supabase apps: the policies that look correct and aren't, and how to prove yours actually hold.">
+<link rel="canonical" href="https://keystone-landing-cyy.pages.dev/guides/">
+<meta property="og:title" content="Guides — Postgres RLS and multi-tenant Supabase">
+<meta property="og:description" content="The policies that look correct and aren't, and how to prove yours actually hold.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://keystone-landing-cyy.pages.dev/guides/">
+<meta property="og:site_name" content="Scaffold">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://keystone-landing-cyy.pages.dev/assets/og-scaffold.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Scaffold guides.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Guides — Postgres RLS and multi-tenant Supabase">
+<meta name="twitter:description" content="The policies that look correct and aren't, and how to prove yours actually hold.">
+<meta name="twitter:image" content="https://keystone-landing-cyy.pages.dev/assets/og-scaffold.jpg">
+<meta name="theme-color" content="#0a0a0c">
+<link rel="icon" href="../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="manifest" href="../site.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/base.css">
+<link rel="stylesheet" href="../assets/guides.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <a class="nav-brand" href="../">
+      <span class="mark">◆</span> SCAFFOLD
+    </a>
+    <div class="nav-links">
+      <a href="./">Guides</a>
+      <a href="../keystone/">Keystone</a>
+      <a href="../#products">Products</a>
+    </div>
+    <div class="nav-right">
+      <a class="btn btn-accent btn-sm" href="../keystone/">Get Keystone</a>
+    </div>
+  </div>
+</header>
+
+<section class="hero" id="top">
+  <div class="wrap">
+    <div class="hero-eyebrow">Guides</div>
+    <h1 class="reveal">Policies that look correct.</h1>
+    <p class="hero-sub reveal">
+      Row-level security is the right place to enforce access, because it's the one layer an
+      application bug can't route around. Its failure modes are quiet, though: a policy that
+      is subtly too permissive looks exactly like a correct one, right up until someone reads
+      another tenant's data. These are the ones worth knowing about.
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="guide-list reveal-stagger">
+
+      <a class="guide-row stagger-item" href="supabase-rls-tenant-isolation/">
+        <div>
+          <div class="guide-title">The Supabase RLS mistake that lets any user join any organization</div>
+          <p class="guide-blurb">
+            An insert policy that checks <code>user_id = auth.uid()</code> and never constrains
+            <code>organization_id</code>. It reads correctly out loud, and it hands over an
+            entire tenant in one statement.
+          </p>
+        </div>
+        <div class="guide-meta">1 Sep 2026 · 9 min</div>
+      </a>
+
+    </div>
+
+    <p style="color:var(--text-faint);font-size:14.5px;margin-top:28px;font-family:'IBM Plex Mono',monospace;">
+      More on role hierarchies, invite acceptance, per-row sharing, and service-role
+      boundaries — in progress.
+    </p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap footer-inner">
+    <div class="footer-brand">Scaffold</div>
+    <div class="footer-links">
+      <a href="../keystone/">Keystone</a>
+      <a href="../">Home</a>
+      <a href="#top">Back to top</a>
+    </div>
+  </div>
+</footer>
+
+<script src="../assets/site.js"></script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": "Scaffold Guides",
+  "url": "https://keystone-landing-cyy.pages.dev/guides/",
+  "description": "Practical guides on Postgres row-level security and multi-tenant Supabase apps.",
+  "isPartOf": { "@type": "WebSite", "name": "Scaffold", "url": "https://keystone-landing-cyy.pages.dev/" }
+}
+</script>
+
+</body>
+</html>
