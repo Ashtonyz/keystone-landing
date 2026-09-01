@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Scaffold — production-ready starter kits for developers</title>
-<meta name="description" content="Scaffold builds starter kits for the parts of a product that are tedious to get right and dangerous to get wrong — auth, multi-tenancy, and database-level security. One-time payment, full source.">
+<title>Scaffold: production-ready starter kits for developers</title>
+<meta name="description" content="Scaffold builds starter kits for the parts of a product that are tedious to get right and dangerous to get wrong: auth, multi-tenancy, and database-level security. One-time payment, full source.">
 <meta name="google-site-verification" content="RvQUmvJ5B08M87AOorwLKHG8qPamyXWSvTC4psJ-Tto">
 <link rel="canonical" href="https://keystone-landing-cyy.pages.dev/">
-<meta property="og:title" content="Scaffold — production-ready starter kits for developers">
+<meta property="og:title" content="Scaffold: production-ready starter kits for developers">
 <meta property="og:description" content="Starter kits for the parts that are tedious to get right and dangerous to get wrong. One-time payment, full source.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://keystone-landing-cyy.pages.dev/">
@@ -16,12 +16,12 @@
 <meta property="og:image" content="https://keystone-landing-cyy.pages.dev/assets/og-scaffold.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Scaffold — foundations you don't build twice.">
+<meta property="og:image:alt" content="Scaffold. Foundations you don't build twice.">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Scaffold — production-ready starter kits for developers">
+<meta name="twitter:title" content="Scaffold: production-ready starter kits for developers">
 <meta name="twitter:description" content="Starter kits for the parts that are tedious to get right and dangerous to get wrong. One-time payment, full source.">
 <meta name="twitter:image" content="https://keystone-landing-cyy.pages.dev/assets/og-scaffold.jpg">
-<meta name="theme-color" content="#0a0a0c">
+<meta name="theme-color" content="#08080a">
 <link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -42,8 +42,8 @@
     </a>
     <div class="nav-links">
       <a href="#products">Products</a>
-      <a href="#approach">Approach</a>
       <a href="guides/">Guides</a>
+      <a href="#approach">Approach</a>
     </div>
     <div class="nav-right">
       <a class="btn btn-accent btn-sm" href="keystone/">Get Keystone</a>
@@ -53,72 +53,120 @@
 
 <main id="main">
 
+<!-- 1. Hero: asymmetric split, copy left, rendered scene right -->
 <section class="hero" id="top">
-  <div class="wrap">
-    <div class="hero-eyebrow">Starter kits for developers</div>
-    <h1 class="reveal">Foundations you don't build twice.</h1>
-    <p class="hero-sub reveal">Every product starts with the same few weeks of work — auth, tenancy, permissions, the security boundaries you can't afford to get wrong. Scaffold builds those parts properly, once, so you can start on the part that's actually yours.</p>
-    <div class="hero-ctas reveal">
-      <a class="btn btn-accent" href="#products">Browse products</a>
-      <a class="btn btn-ghost" href="#approach">How these are built</a>
+  <div class="wrap hero-split">
+    <div class="hero-copy">
+      <div class="hero-eyebrow">Starter kits for developers</div>
+      <h1 class="reveal">Foundations you don’t build twice.</h1>
+      <p class="hero-sub reveal">
+        The auth, tenancy and permission layers every product needs. Built once,
+        properly, so you can start on what is yours.
+      </p>
+      <div class="hero-ctas reveal">
+        <a class="btn btn-accent" href="#products">Browse products</a>
+        <a class="btn btn-ghost" href="guides/">Read the guides</a>
+      </div>
     </div>
-    <div class="hero-note reveal">One-time payments · full source · no subscriptions</div>
+
+    <div class="scene-frame reveal" aria-hidden="true">
+      <canvas id="scaffoldScene"></canvas>
+      <span class="scene-caption">tenant boundary</span>
+    </div>
   </div>
 </section>
 
+<!-- 2. Products: asymmetric feature plus stacked minors -->
 <section id="products">
   <div class="wrap">
     <div class="section-head reveal">
       <div>
-        <div class="section-eyebrow">Catalog</div>
         <h2>Products</h2>
       </div>
-      <p>Each kit ships as complete, readable source you own outright — small enough to read end to end before you trust it with anything.</p>
+      <p>Complete, readable source you own outright. Small enough to read end to end before you trust it with anything.</p>
     </div>
 
-    <div class="product-grid reveal-stagger">
-
-      <a class="product-card stagger-item" href="keystone/">
-        <span class="product-status live">Available now</span>
-        <div class="product-name">Keystone</div>
-        <p class="product-tagline">A multi-tenant B2B SaaS starter kit. Organizations, invites, and row-level security enforced by the database itself — not just in app code.</p>
-        <div class="product-tags">
-          <span>Next.js</span><span>Supabase</span><span>Postgres RLS</span><span>Vercel</span>
-        </div>
-        <div class="product-meta">
-          <div class="product-price">$49<span class="unit">one-time</span></div>
-          <div class="product-cta">View details →</div>
-        </div>
+    <div class="product-layout reveal-3d">
+      <a class="tilt feature-card-outer" href="keystone/" aria-label="Keystone, a multi-tenant Next.js and Supabase starter kit">
+        <span class="tilt-inner feature-card">
+          <img class="feature-media" src="assets/og-keystone.jpg" width="1200" height="630"
+               alt="Keystone: multi-tenant from the first commit." loading="eager" fetchpriority="high">
+          <span class="feature-body">
+            <span class="feature-name">Keystone</span>
+            <span class="feature-copy">
+              A multi-tenant B2B SaaS starter kit. Organizations, invites, and row-level
+              security enforced by the database itself, not just in app code.
+            </span>
+            <span class="feature-foot">
+              <span class="feature-price">$49<span class="unit">one-time</span></span>
+              <span class="feature-go">Get Keystone →</span>
+            </span>
+          </span>
+        </span>
       </a>
 
-      <div class="product-card is-soon stagger-item">
-        <span class="product-status soon">In development</span>
-        <div class="product-name">Ledger</div>
-        <p class="product-tagline">Per-organization Stripe billing for Keystone — subscriptions, plan gating, webhooks, and the customer portal, wired into the org model.</p>
-        <div class="product-tags">
-          <span>Stripe</span><span>Next.js</span><span>Supabase</span>
+      <div class="product-minor-stack">
+        <div class="minor-card">
+          <div>
+            <div class="minor-status">In development</div>
+            <div class="feature-name" style="margin-top:8px">Ledger</div>
+            <p class="feature-copy" style="margin-top:8px">
+              Per-organization Stripe billing for Keystone. Subscriptions, plan gating,
+              webhooks, wired into the org model.
+            </p>
+          </div>
         </div>
-        <div class="product-meta">
-          <div class="product-price">Coming soon</div>
+        <div class="minor-card">
+          <div>
+            <div class="minor-status">In development</div>
+            <div class="feature-name" style="margin-top:8px">The RLS Cookbook</div>
+            <p class="feature-copy" style="margin-top:8px">
+              Battle-tested Postgres row-level security patterns, each with a runnable
+              proof that it holds.
+            </p>
+          </div>
         </div>
       </div>
-
-      <div class="product-card is-soon stagger-item">
-        <span class="product-status soon">In development</span>
-        <div class="product-name">The RLS Cookbook</div>
-        <p class="product-tagline">Battle-tested Postgres row-level security patterns — multi-tenancy, role hierarchies, sharing, audit trails — each with the failure mode that makes it worth having.</p>
-        <div class="product-tags">
-          <span>Postgres</span><span>Supabase</span><span>Reference</span>
-        </div>
-        <div class="product-meta">
-          <div class="product-price">Coming soon</div>
-        </div>
-      </div>
-
     </div>
   </div>
 </section>
 
+<!-- 3. Guides: index rows, a distinct layout family -->
+<section id="guides">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div>
+        <h2>Guides</h2>
+      </div>
+      <p>Row-level security fails quietly. A policy that is subtly too permissive looks exactly like a correct one, right up until someone reads another tenant's data.</p>
+    </div>
+
+    <div class="index-list reveal-stagger">
+      <a class="index-row stagger-item" href="guides/supabase-rls-tenant-isolation/">
+        <span class="index-title">The Supabase RLS mistake that lets any user join any organization</span>
+        <span class="index-meta">9 min</span>
+      </a>
+      <a class="index-row stagger-item" href="guides/supabase-rls-role-hierarchies/">
+        <span class="index-title">The role check that makes an admin of one tenant an admin of all</span>
+        <span class="index-meta">8 min</span>
+      </a>
+      <a class="index-row stagger-item" href="guides/supabase-invite-acceptance/">
+        <span class="index-title">Why invite acceptance can’t be an RLS policy</span>
+        <span class="index-meta">8 min</span>
+      </a>
+      <a class="index-row stagger-item" href="guides/postgres-rls-per-row-sharing/">
+        <span class="index-title">Per-row sharing in RLS without making it transitive</span>
+        <span class="index-meta">7 min</span>
+      </a>
+      <a class="index-row stagger-item" href="guides/postgres-security-definer-boundaries/">
+        <span class="index-title">When RLS can’t express it: security definer done right</span>
+        <span class="index-meta">8 min</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- 4. Approach: two-column prose, no card containers -->
 <section id="approach">
   <div class="wrap">
     <div class="section-head reveal">
@@ -126,22 +174,37 @@
         <div class="section-eyebrow">Approach</div>
         <h2>How these are built</h2>
       </div>
-      <p>A starter kit is a trust purchase — you're inheriting someone else's decisions about the parts hardest to verify. These are the rules that go into every one.</p>
+      <p>A starter kit is a trust purchase. You are inheriting someone else's decisions about the parts hardest to verify.</p>
     </div>
 
-    <div class="principles reveal-stagger">
-      <div class="principle stagger-item">
-        <div class="p-title">Security at the boundary</div>
-        <div class="p-body">Access rules live in the database, where a mistake in application code can't route around them.</div>
+    <div class="approach-grid reveal-stagger">
+      <div class="approach-item stagger-item">
+        <h3>Security at the boundary</h3>
+        <p>Access rules live in the database, where a mistake in application code cannot route around them.</p>
       </div>
-      <div class="principle stagger-item">
-        <div class="p-title">Small enough to audit</div>
-        <div class="p-body">No framework-on-a-framework. You can read the whole thing in an afternoon and know exactly what you shipped.</div>
+      <div class="approach-item stagger-item">
+        <h3>Small enough to audit</h3>
+        <p>No framework on a framework. You can read the whole thing in an afternoon and know exactly what you shipped.</p>
       </div>
-      <div class="principle stagger-item">
-        <div class="p-title">Honest about the edges</div>
-        <div class="p-body">Every product lists what it doesn't do yet, on the pricing page, before you pay.</div>
+      <div class="approach-item stagger-item">
+        <h3>Proven, not asserted</h3>
+        <p>Every security claim ships with a test that fails when the claim stops being true.</p>
       </div>
+      <div class="approach-item stagger-item">
+        <h3>Honest about the edges</h3>
+        <p>Every product lists what it does not do yet, on the pricing page, before you pay.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 5. Closing: centred statement, full width -->
+<section class="closing">
+  <div class="wrap">
+    <h2 class="reveal">Start on the part that is actually yours.</h2>
+    <p class="reveal">One-time payment, full source, unlimited personal and commercial projects.</p>
+    <div class="hero-ctas reveal">
+      <a class="btn btn-accent" href="keystone/">Get Keystone</a>
     </div>
   </div>
 </section>
@@ -160,6 +223,7 @@
 </footer>
 
 <script src="assets/site.js"></script>
+<script src="assets/scene.js"></script>
 
 <script type="application/ld+json">
 {
@@ -188,7 +252,7 @@
           "@type": "ListItem",
           "position": 1,
           "url": "https://keystone-landing-cyy.pages.dev/keystone/",
-          "name": "Keystone — multi-tenant Next.js + Supabase SaaS starter kit"
+          "name": "Keystone: multi-tenant Next.js + Supabase SaaS starter kit"
         }
       ]
     }

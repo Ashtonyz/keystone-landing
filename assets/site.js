@@ -2,7 +2,7 @@
 (function(){
   var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  var revealEls = document.querySelectorAll('.reveal, .reveal-stagger');
+  var revealEls = document.querySelectorAll('.reveal, .reveal-stagger, .reveal-3d');
   if('IntersectionObserver' in window && !reduceMotion){
     var io = new IntersectionObserver(function(entries){
       entries.forEach(function(entry){

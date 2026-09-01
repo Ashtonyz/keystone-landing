@@ -1,117 +1,310 @@
 /* ============================================
-   Scaffold home — product index styles
+   Scaffold home — composition and depth
    Requires base.css
+
+   Shape lock: surfaces 12px, controls 6px. Nothing else.
+   Accent lock: --accent only. No second hue anywhere on this page.
    ============================================ */
 
-.product-grid{
+:root{
+  --r-surface:12px;
+  --r-control:6px;
+}
+
+/* ---------- hero: asymmetric split ---------- */
+.hero-split{
   display:grid;
-  grid-template-columns:repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: 1.02fr 0.98fr;
+  gap:56px;
+  align-items:center;
+  min-height:min(78dvh, 720px);
+  padding-top:72px;   /* under the pt-24 cap */
+  padding-bottom:64px;
+}
+/* No max-width here: ch resolves against this element's 16px font, so a
+   character-based cap on the wrapper throttles the display type to a ~280px
+   column and forces the headline to 4 lines. Constrain the children instead,
+   where ch resolves against their own size. */
+.hero-copy{ min-width:0; }
+.hero-copy h1{
+  font-size:clamp(34px, 4.2vw, 56px);
+  line-height:1.07;
+  letter-spacing:-0.02em;
+  max-width:17ch;          /* two lines at display size */
+  text-wrap:balance;
+}
+.hero-copy .hero-sub{
+  margin-top:20px;
+  max-width:46ch;
+  color:var(--text-dim);
+  font-size:clamp(16px, 1.5vw, 18px);
+  line-height:1.6;
+  text-wrap:pretty;
+}
+.hero-copy .hero-ctas{ margin-top:30px; }
+
+/* Canvas frame. The border and inset shadow give the scene an edge so it
+   reads as a rendered object rather than loose marks on the page. */
+.scene-frame{
+  position:relative;
+  aspect-ratio: 1 / 0.86;
+  border:1px solid var(--border-soft);
+  border-radius:var(--r-surface);
+  background:
+    radial-gradient(120% 90% at 70% 10%, rgba(238,179,92,0.07), transparent 60%),
+    var(--bg-inset);
+  box-shadow: inset 0 1px 0 rgba(245,243,238,0.04);
+  overflow:hidden;
+}
+.scene-frame canvas{
+  display:block;
+  width:100%;
+  height:100%;
+}
+.scene-caption{
+  position:absolute;
+  left:16px; bottom:14px;
+  font-family:'IBM Plex Mono', monospace;
+  font-size:11px;
+  letter-spacing:0.04em;
+  color:var(--text-faint);
+  pointer-events:none;
+}
+
+@media (max-width:900px){
+  .hero-split{
+    grid-template-columns:1fr;
+    gap:36px;
+    min-height:0;
+    padding-top:48px;
+  }
+  .hero-copy{ max-width:none; }
+  .scene-frame{ aspect-ratio: 1 / 0.62; }
+}
+
+/* ---------- products: asymmetric, not three equal cards ---------- */
+.product-layout{
+  display:grid;
+  grid-template-columns: 1.45fr 1fr;
+  gap:20px;
+  align-items:stretch;
+}
+.product-minor-stack{
+  display:grid;
+  grid-template-rows:1fr 1fr;
   gap:20px;
 }
+@media (max-width:900px){
+  .product-layout{ grid-template-columns:1fr; }
+}
 
-.product-card{
-  position:relative;
-  border:1px solid var(--border);
-  border-radius:12px;
-  background:linear-gradient(160deg, var(--bg-raised), var(--bg-inset));
-  padding:26px 26px 22px;
+/* Parallax tilt: real 3D transform, driven by pointer, feedback-motivated.
+   The anchor is the perspective host; the inner span is what rotates. */
+.tilt{
+  display:block;
+  height:100%;
+  perspective:1000px;
+  text-decoration:none;
+  color:inherit;
+}
+.tilt-inner{
   display:flex;
   flex-direction:column;
-  gap:12px;
-  text-decoration:none;
-  transition:border-color 0.18s ease, transform 0.18s ease;
+  height:100%;
+  transform-style:preserve-3d;
+  transition:transform 0.5s cubic-bezier(.2,.7,.2,1);
+  will-change:transform;
 }
-a.product-card:hover{
-  border-color:var(--accent-line);
-  transform:translateY(-2px);
+@media (hover:hover) and (pointer:fine){
+  .tilt:hover .tilt-inner{ transition-duration:0.12s; }
+}
+@media (prefers-reduced-motion:reduce){
+  .tilt-inner{ transform:none !important; transition:none; }
 }
 
-.product-status{
-  font-family:'IBM Plex Mono', monospace;
-  font-size:10.5px;
-  letter-spacing:0.06em;
-  text-transform:uppercase;
-  display:inline-flex; align-items:center; gap:7px;
-  align-self:flex-start;
-  padding:3px 9px;
-  border-radius:4px;
+.feature-card{
+  position:relative;
+  border:1px solid var(--border);
+  border-radius:var(--r-surface);
+  background:linear-gradient(158deg, var(--bg-raised), var(--bg-inset));
+  overflow:hidden;
+  transition:border-color 0.2s ease;
 }
-.product-status.live{ background:var(--success-soft); color:var(--success); }
-.product-status.soon{ background:var(--bg); color:var(--text-faint); border:1px solid var(--border-soft); }
+.tilt:hover .feature-card{ border-color:var(--accent-line); }
+.tilt:focus-visible .feature-card{ border-color:var(--accent); }
 
-.product-name{
+.feature-media{
+  display:block;
+  width:100%;
+  /* height:auto is load-bearing. The width/height attributes on the <img> are
+     there to reserve space and avoid CLS, but without this the attribute
+     height (630) wins over aspect-ratio and the card inflates. */
+  height:auto;
+  aspect-ratio: 1200 / 630;
+  object-fit:cover;
+  border-bottom:1px solid var(--border-soft);
+  transform:translateZ(0);
+}
+.feature-body{
+  padding:26px 26px 24px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  flex:1;
+}
+.feature-name{
+  display:block;
   font-family:'Space Grotesk', sans-serif;
   font-weight:600;
   font-size:22px;
   letter-spacing:-0.01em;
-}
-.product-tagline{
-  color:var(--text-dim);
-  font-size:14.5px;
-  line-height:1.6;
-}
-
-.product-tags{
-  display:flex; flex-wrap:wrap; gap:6px;
-  margin-top:2px;
-}
-.product-tags span{
-  font-family:'IBM Plex Mono', monospace;
-  font-size:10.5px;
-  color:var(--text-faint);
-  border:1px solid var(--border-soft);
-  border-radius:4px;
-  padding:2px 7px;
-}
-
-.product-meta{
-  margin-top:auto;
-  padding-top:18px;
-  border-top:1px solid var(--border-soft);
-  display:flex; align-items:baseline; justify-content:space-between;
-  gap:12px;
-}
-.product-price{
-  font-family:'Space Grotesk', sans-serif;
-  font-weight:700;
-  font-size:20px;
   color:var(--text);
 }
-.product-price .unit{
+.feature-copy{
+  display:block;
+  color:var(--text-dim);
+  font-size:15px;
+  line-height:1.6;
+  max-width:52ch;
+}
+.feature-foot{
+  margin-top:auto;
+  padding-top:18px;
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:12px;
+  border-top:1px solid var(--border-soft);
+}
+.feature-price{
+  font-family:'Space Grotesk', sans-serif;
+  font-weight:700;
+  font-size:19px;
+  color:var(--text);
+}
+.feature-price .unit{
   font-family:'IBM Plex Mono', monospace;
   font-weight:400;
   font-size:11.5px;
   color:var(--text-faint);
-  margin-left:6px;
+  margin-left:7px;
 }
-.product-cta{
+.feature-go{
   font-size:13.5px;
   font-weight:600;
   color:var(--accent);
   white-space:nowrap;
 }
-.product-card.is-soon{ opacity:0.72; }
-.product-card.is-soon .product-price{ color:var(--text-faint); font-size:14px; font-family:'IBM Plex Mono', monospace; font-weight:400; }
 
-/* ---------- principles strip ---------- */
-.principles{
+.minor-card{
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  gap:14px;
+  padding:24px;
+  border:1px solid var(--border-soft);
+  border-radius:var(--r-surface);
+  background:var(--bg-inset);
+}
+.minor-card .feature-name{ font-size:18px; }
+.minor-card .feature-copy{ font-size:14px; }
+.minor-status{
+  font-family:'IBM Plex Mono', monospace;
+  font-size:10.5px;
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+  color:var(--text-faint);
+}
+
+/* ---------- guides: index rows, a different layout family ---------- */
+.index-list{ border-top:1px solid var(--border-soft); }
+.index-row{
   display:grid;
-  grid-template-columns:repeat(3,1fr);
-  border-top:1px solid var(--border-soft);
-  border-left:1px solid var(--border-soft);
-}
-.principle{
-  padding:26px 24px;
-  border-right:1px solid var(--border-soft);
+  grid-template-columns: 1fr auto;
+  gap:24px;
+  align-items:baseline;
+  padding:20px 0;
   border-bottom:1px solid var(--border-soft);
+  text-decoration:none;
+  transition:padding-left 0.22s cubic-bezier(.2,.7,.2,1), border-color 0.22s ease;
 }
-.principle .p-title{
+a.index-row:hover{
+  padding-left:10px;
+  border-bottom-color:var(--accent-line);
+}
+a.index-row:hover .index-title{ color:var(--accent); }
+.index-title{
   font-family:'Space Grotesk', sans-serif;
   font-weight:600;
-  font-size:16px;
-  margin-bottom:7px;
+  font-size:17px;
+  transition:color 0.2s ease;
 }
-.principle .p-body{ color:var(--text-dim); font-size:14px; line-height:1.6; }
+.index-meta{
+  font-family:'IBM Plex Mono', monospace;
+  font-size:11.5px;
+  color:var(--text-faint);
+  white-space:nowrap;
+}
+@media (max-width:640px){
+  .index-row{ grid-template-columns:1fr; gap:6px; }
+}
+
+/* ---------- approach: two-column prose, no card boxes ---------- */
+.approach-grid{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap:44px 64px;
+}
+.approach-item h3{
+  font-family:'Space Grotesk', sans-serif;
+  font-weight:600;
+  font-size:17px;
+  margin-bottom:9px;
+}
+.approach-item p{
+  color:var(--text-dim);
+  font-size:15px;
+  line-height:1.65;
+  max-width:50ch;
+}
 @media (max-width:760px){
-  .principles{ grid-template-columns:1fr; }
+  .approach-grid{ grid-template-columns:1fr; gap:32px; }
+}
+
+/* ---------- closing statement: full-bleed, own layout family ---------- */
+.closing{
+  border-top:1px solid var(--border-soft);
+  padding:96px 0 104px;
+  text-align:center;
+}
+.closing h2{
+  font-size:clamp(26px, 3.6vw, 40px);
+  max-width:20ch;
+  margin:0 auto;
+  text-wrap:balance;
+}
+.closing p{
+  margin:18px auto 0;
+  max-width:52ch;
+  color:var(--text-dim);
+  font-size:16px;
+  line-height:1.65;
+}
+.closing .hero-ctas{ justify-content:center; margin-top:30px; }
+
+/* ---------- depth on scroll reveal ---------- */
+/* base.css fades and lifts. Here the lift carries a small rotateX so entering
+   content reads as tilting into the page plane, matching the hero's 3D. */
+.reveal-3d{
+  opacity:0;
+  transform:perspective(900px) rotateX(6deg) translateY(22px);
+  transition:opacity 0.75s cubic-bezier(.2,.7,.2,1),
+             transform 0.75s cubic-bezier(.2,.7,.2,1);
+}
+.reveal-3d.in-view{
+  opacity:1;
+  transform:perspective(900px) rotateX(0) translateY(0);
+}
+@media (prefers-reduced-motion:reduce){
+  .reveal-3d{ opacity:1 !important; transform:none !important; transition:none !important; }
 }

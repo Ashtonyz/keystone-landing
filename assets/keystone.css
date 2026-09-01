@@ -355,16 +355,19 @@ pre.code .cm{ color:var(--text-faint); font-style:italic; }
 pre.code .bad-line{ color:var(--deny); }
 
 /* ---------- stack ---------- */
+/* Three equal bordered cells is the "three identical cards" pattern. Grouped
+   with a single rule and unequal columns instead: no boxes, and the first
+   item carries the weight it actually has. */
 .stack-list{
   display:grid;
-  grid-template-columns:repeat(3,1fr);
+  grid-template-columns: 1.35fr 1fr 1fr;
+  gap:40px;
   border-top:1px solid var(--border-soft);
-  border-left:1px solid var(--border-soft);
+  padding-top:32px;
 }
 .stack-item{
-  padding:28px 26px;
-  border-right:1px solid var(--border-soft);
-  border-bottom:1px solid var(--border-soft);
+  padding:0;
+  border:none;
 }
 .stack-item .name{
   font-family:'Space Grotesk', sans-serif;
