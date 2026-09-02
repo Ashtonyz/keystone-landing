@@ -84,6 +84,30 @@ a.guide-row:hover .guide-title{ color:var(--accent); }
   color:var(--text-faint);
 }
 
+/* Sits under the guides-index standfirst. Smaller and dimmer than .hero-sub so
+   it reads as a note about the guides rather than part of the pitch. */
+.hero-note{
+  margin-top:18px;
+  /* Explicit: this sits inside the hero, which sets monospace. */
+  font-family:'IBM Plex Sans', -apple-system, sans-serif;
+  max-width:62ch;
+  font-size:13.5px;
+  line-height:1.6;
+  color:var(--text-faint);
+}
+.hero-note a{ color:var(--text-dim); }
+
+.byline-note{
+  display:block;
+  margin-top:9px;
+  /* Explicit, not inherit: the parent .article-byline is monospace, and three
+     lines of 12.5px mono reads heavier than a footnote should. */
+  font-family:'IBM Plex Sans', -apple-system, sans-serif;
+  font-size:12.5px;
+  line-height:1.55;
+  max-width:60ch;
+}
+
 /* Long-form body. Measure is the point — ~68ch keeps lines readable. */
 .prose{ max-width:72ch; }
 .prose h2{
